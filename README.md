@@ -60,7 +60,6 @@ git clone https://github.com/ADC1920/AI-short-play-video-creation.git "$env:USER
 ├── scripts/                 13 个工程脚本，全部带 selftest
 ├── examples/demo-multi-ep/  最小多集样例，同时用于回归测试
 ├── docs/                    工作区导航与技能更新说明
-├── CHANGELOG.md             版本记录
 └── .github/workflows/       CI：脚本自检与样例端到端回归
 ```
 
