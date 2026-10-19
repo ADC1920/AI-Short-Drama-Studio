@@ -126,7 +126,3 @@ CI 在每次 push 和 PR 时执行同一组自检，并对样例项目跑端到�
 ## 环境要求
 
 Python 3.9 及以上，Windows、macOS、Linux 均可。技能本体是纯 Markdown，任何支持 Agent Skill 机制的工具都能加载，包括 Claude Code、ZCode、Codex 等。生成环节需要对应的图片和视频平台账号，具体积分消耗与平台限制见 `references/jimeng-seedance-2.5.md`。
-
-## 更新记录
-
-版本变更与迁移说明见 [CHANGELOG.md](CHANGELOG.md)。
