@@ -4,11 +4,11 @@
 
 ## 一、架构
 
-技能包三段式：主入口 `SKILL.md`（触发示例 26 类 / 三路线决策 / 对标参考流程 / 铁律与核心公式 / 平台硬约束 / 成本纪律 / 排障速查 / 多集工作流）→ `references/` 13 篇按需加载工艺文档 → `scripts/` 13 个工程脚本。数据流：用户素材（完整剧本 / 一句话梗概）→ 路线判定（A 分镜智能体 / B 宫格直生 / C 人脸规避）→ 分镜蓝图或宫格 JSON（`validate_storyboard.py` 机检）→ 素材锚点与 @ 引用（`check_refs.py` 核对）→ 逐镜生成 / 直生视频 → 衔接后期与配音。本工作区（git 仓库）为开发源；发布面=GitHub；使用面=本机技能实体（静态复制，`scripts/sync_entity.py` 一键同步）。
+技能包三段式：主入口 `SKILL.md`（触发示例 28 类 / 三路线决策 / 对标参考流程 / 铁律与核心公式 / 平台硬约束 / 成本纪律 / 排障速查 / 多集工作流）→ `references/` 14 篇按需加载工艺文档 → `scripts/` 15 个工程脚本。数据流：用户素材（完整剧本 / 一句话梗概）→ 路线判定（A 分镜智能体 / B 宫格直生 / C 人脸规避）→ 分镜蓝图或宫格 JSON（`validate_storyboard.py` 机检）→ 素材锚点与 @ 引用（`check_refs.py` 核对）→ 逐镜生成 / 直生视频 → 衔接后期与配音。本工作区（git 仓库）为开发源；发布面=GitHub；使用面=本机技能实体（静态复制，`scripts/sync_entity.py` 一键同步）。
 
 ## 二、目标
 
-把一句话剧情或完整剧本变成可执行的 AI 短剧视频（动态漫/漫剧、写实风等形态通用）；本工作区职责=开发、版本化、发布该技能（当前 v1.14.0）。
+把一句话剧情或完整剧本变成可执行的 AI 短剧视频（动态漫/漫剧、写实风等形态通用）；本工作区职责=开发、版本化、发布该技能（当前 v1.15.0）。
 
 ## 三、模块表（关键词锚定列）
 
@@ -28,6 +28,9 @@
 | 打戏预演 | `references/action-previs.md` | R1-R3 强度档、11 环动力链、镜头五要素 |
 | 声音与配音 | `references/audio-voice.md` | 四轨设计、角色音色表、Edge TTS、混音检查 |
 | 即梦实测档案 | `references/jimeng-seedance-2.5.md` | Seedance 2.5、素材上限、积分、提示词规则、审核限制 |
+| 场景资产 | `references/scene-plates.md` | 场景板、Location/state/View、锁定句、空场与文字政策、反推、验收 |
+| 场景板机检 | `scripts/check_scene_plates.py` | 字段、ID/state、政策冲突、光线、敏感词、跨文件引用 |
+| 场景单生成 | `scripts/gen_scene_sheet.py` | 数据单源、渲染、verify、docx |
 | 分镜 JSON 机检 | `scripts/validate_storyboard.py` | 数量、词数、字符上限、排除词、编号重复、告警、门日志 |
 | @引用核对 | `scripts/check_refs.py` | 断链、待补标注、闲置素材、大小写、绑定自检 |
 | 多集脚手架 | `scripts/init_project.py` | 多集目录、幂等、扩容 |
