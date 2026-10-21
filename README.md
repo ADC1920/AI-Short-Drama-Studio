@@ -57,7 +57,7 @@ git clone https://github.com/ADC1920/AI-short-play-video-creation.git "$env:USER
 .
 ├── SKILL.md                 主入口：路线、铁律、平台约束、排障、索引
 ├── references/              14 篇工艺文档，按场景加载
-├── scripts/                 15 个工程脚本，全部带 selftest
+├── scripts/                 16 个工程脚本，全部带 selftest
 ├── examples/demo-multi-ep/  最小多集样例，同时用于回归测试
 ├── docs/                    工作区导航与技能更新说明
 └── .github/workflows/       CI：脚本自检与样例端到端回归
@@ -84,6 +84,7 @@ git clone https://github.com/ADC1920/AI-short-play-video-creation.git "$env:USER
 | `trim_clips.py` | 分镜统一裁切到整拍时长，帧精确 | ffmpeg |
 | `gen_script.py` | 脚本或文档的版本生成引擎，带命中数校验与回放 | 无 |
 | `fix_table_pagination.py` | docx 分页修复：表格不跨页、表头重复、防孤行 | python-docx |
+| `style_code_blocks.py` | docx 代码块后处理：底纹、左边框、防跨页拆断 | python-docx |
 
 依赖一次装齐：
 
@@ -122,6 +123,7 @@ python scripts/trim_clips.py --selftest
 python scripts/gen_script.py --selftest
 python scripts/check_scene_plates.py --selftest
 python scripts/gen_scene_sheet.py --selftest
+python scripts/style_code_blocks.py --selftest
 ```
 
 CI 在每次 push 和 PR 时执行同一组自检，并对样例项目跑端到端回归。
