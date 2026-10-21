@@ -5,7 +5,7 @@
 核对——把「混源批次」的判断从人工纪律变成数据核对（混源是接缝色差超标的结构性来源）。
 
 用法：
-  python qa_batch.py "<分镜目录>" [--pattern "*.mp4"] [--batch 10.15] [--out <底账.md>] [--json]
+  python qa_batch.py "<分镜目录>" [--pattern "*.mp4"] [--batch demo] [--out <底账.md>] [--json]
 自检：
   python qa_batch.py --selftest
 """
@@ -32,13 +32,15 @@ def manifest_check(d: Path):
     """返回 (文本块, 是否全部就绪)"""
     mf = d / "_manifest.json"
     if not mf.exists():
-        return "（无 _manifest.json——建议用 `python tools/manifest.py init` 建档，以启用同源核对）", None
+        return "（无 _manifest.json——建议用 `python scripts/manifest.py init` 建档，以启用同源核对）", None
     data = json.loads(mf.read_text(encoding="utf-8"))
-    versions = {}
+    versions, scenes = {}, {}
     not_final, missing = [], []
     for s in data.get("shots", []):
         v = s.get("script_version") or "(未记)"
         versions.setdefault(v, []).append(s["shot"])
+        ss = s.get("scene_state") or "(未记)"
+        scenes.setdefault(ss, []).append(s["shot"])
         if s.get("status") != "定稿":
             not_final.append(f"{s['shot']}（{s.get('status','?')}）")
         if not (d / s["file"]).exists():
@@ -47,8 +49,17 @@ def manifest_check(d: Path):
     lines.append(f"- 非定稿 {len(not_final)} 段" + ("：" + "、".join(not_final) if not_final else "（全部定稿）"))
     if missing:
         lines.append(f"- 清单内文件缺失 {len(missing)} 段：{'、'.join(missing)}")
-    ready = (len(versions) == 1 and not not_final and not missing)
-    lines.append(f"- 同源判定：{'通过（同一版本、全部定稿）' if ready else '**未通过**——缝两侧非同源或含非定稿，色差超标先查此处'}")
+    scene_known = any(k != "(未记)" for k in scenes)
+    scene_mixed = len([k for k in scenes if k != "(未记)"]) > 1 or (scene_known and "(未记)" in scenes)
+    lines.append("- 场景 state 分布：" + "；".join(f"{k}×{len(vs)}" for k, vs in scenes.items()))
+    if not scene_known:
+        lines.append("- 场景版本：未记录（建议 init/set 补 --scene-state，混场景版本才可机检）")
+    elif scene_mixed:
+        lines.append("- 场景版本：**不一致**——混用两版场景属混源，先统一 state 再复测")
+    else:
+        lines.append("- 场景版本：通过（全片同一 state）")
+    ready = (len(versions) == 1 and not not_final and not missing and not scene_mixed)
+    lines.append(f"- 同源判定：{'通过（同一版本/场景、全部定稿）' if ready else '**未通过**——缝两侧非同源或含非定稿，色差超标先查此处'}")
     return "\n".join(lines), ready
 
 
@@ -96,9 +107,9 @@ def run(args):
     md = []
     md.append(f"# 接缝量化验收底账 · {batch}（{ts}）")
     md.append("")
-    md.append(f"> 工具：`tools/qa_batch.py`（内置 check_seams 六指标：SSIM／Δ亮度／Δ色相／Δ饱和／运动持续性）")
+    md.append(f"> 工具：`scripts/qa_batch.py`（内置 check_seams 六指标：SSIM／Δ亮度／Δ色相／Δ饱和／运动持续性）")
     md.append(f"> 对象：`{d}`（{len(vids)} 段，{len(vids) - 1} 缝）")
-    md.append(f"> 跑法：`python tools/qa_batch.py \"{d}\" --batch {batch}`")
+    md.append(f"> 跑法：`python scripts/qa_batch.py \"{d}\" --batch {batch}`")
     md.append("")
     md.append("## 一、全批数据")
     md.append("")
@@ -155,6 +166,18 @@ def selftest():
                             "-c:v", "libx264", "-crf", "23", "-preset", "ultrafast", str(d / name)],
                            capture_output=True, check=True)
         out = tmp / "底账.md"
+        # 建一份混场景版本清单，验证底账能抓出「场景 state 不一致」
+        mf = d / "_manifest.json"
+        mf.write_text(json.dumps({
+            "batch": "selftest", "script_version": "v1", "scene_state": "",
+            "shots": [
+                {"order": 1, "shot": "LOOK  0 · 开场", "file": "LOOK  0 · 开场.mp4",
+                 "script_version": "v1", "scene_state": "S-01@day-crowd",
+                 "status": "定稿", "refs": [], "note": "", "mtime": ""},
+                {"order": 2, "shot": "LOOK 01 · 测1", "file": "LOOK 01 · 测1.mp4",
+                 "script_version": "v1", "scene_state": "S-01@night-empty",
+                 "status": "定稿", "refs": [], "note": "", "mtime": ""}
+            ]}, ensure_ascii=False), encoding="utf-8")
         rc = run(argparse.Namespace(dir=str(d), pattern="*.mp4", batch="selftest",
                                     out=str(out), json=False))
         assert rc == 0 and out.exists(), "未生成底账"
@@ -162,7 +185,8 @@ def selftest():
         assert "接缝量化验收底账" in text and "缝 1" in text.replace("  1 |", "缝 1 |") or "1 |" in text, "底账内容异常"
         # 缝 2（浅色→深色）应显著超阈
         assert "Δ亮度" in text, "缺指标列"
-        print("selftest PASS（2 缝底账生成，含同源核对未建档提示）")
+        assert "场景版本：**不一致**" in text, "底账未标出场景 state 不一致"
+        print("selftest PASS（2 缝底账生成，含场景 state 混源告警）")
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
 

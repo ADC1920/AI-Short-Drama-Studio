@@ -7,16 +7,17 @@
 数据文件：<分镜目录>/_manifest.json
 
 用法：
-  python tools/manifest.py init <分镜目录> --batch 10.15 [--script-version v21] [--force]
-  python tools/manifest.py set  <分镜目录> --shot "LOOK 01" --status 定稿 --script-version v21
-  python tools/manifest.py list <分镜目录>
-  python tools/manifest.py verify <分镜目录> [--expect-version v21]
-  python tools/manifest.py selftest
+  python scripts/manifest.py init <分镜目录> --batch demo [--script-version v1] [--scene-state S-01@day-crowd] [--force]
+  python scripts/manifest.py set  <分镜目录> --shot "LOOK 01" --status 定稿 --script-version v1 --scene-state S-01@day-crowd
+  python scripts/manifest.py list <分镜目录>
+  python scripts/manifest.py verify <分镜目录> [--expect-version v21] [--expect-scene S-01@day-crowd]
+  python scripts/manifest.py selftest
 
 约定：
   - 只维护元数据，不动视频文件；--status: 定稿/候选/待核（默认 待核）。
   - verify 检查：①同一提示词版本（或与 --expect-version 一致）②状态是否齐为定稿
-    ③文件是否仍在目录中；输出不一致清单（退出码 1＝有问题）。
+    ③文件是否仍在目录中 ④场景 state 是否全片一致（混用两版场景即混源）；
+    输出不一致清单（退出码 1＝有问题）。
 """
 import argparse
 import json
@@ -68,12 +69,13 @@ def cmd_init(args):
             "file": p.name,
             "mtime": datetime.fromtimestamp(p.stat().st_mtime).strftime("%Y-%m-%d %H:%M"),
             "script_version": args.script_version or "",
+            "scene_state": args.scene_state or "",
             "refs": [],
             "status": "待核",
             "note": "",
         })
     data = {"batch": args.batch or "", "script_version": args.script_version or "",
-            "updated": now(), "shots": shots}
+            "scene_state": args.scene_state or "", "updated": now(), "shots": shots}
     save(mf, data)
     print(f"已建清单：{mf}（{len(shots)} 段）")
 
@@ -92,28 +94,29 @@ def cmd_set(args):
         print(f"未找到：{args.shot}（可用 list 查看）")
         sys.exit(2)
     for k, v in [("script_version", args.script_version), ("status", args.status),
-                 ("note", args.note)]:
+                 ("note", args.note), ("scene_state", args.scene_state)]:
         if v is not None:
             s[k] = v
     if args.refs is not None:
         s["refs"] = [x for x in args.refs.split(";") if x]
     save(mf, data)
-    print(f"已更新 {s['shot']}：version={s['script_version']} status={s['status']}")
+    print(f"已更新 {s['shot']}：version={s['script_version']} scene={s.get('scene_state','') or '-'} status={s['status']}")
 
 
 def cmd_list(args):
     _, data = load_dir(Path(args.dir))
     print(f"批次 {data.get('batch','')}  脚本版本 {data.get('script_version','')}  更新 {data.get('updated','')}")
     for s in data["shots"]:
-        print(f"  {s['order']:>2}  {s['shot']:<24} {s['status']:<4} v={s['script_version'] or '-':<6} {s['mtime']}  refs={len(s['refs'])}")
+        print(f"  {s['order']:>2}  {s['shot']:<24} {s['status']:<4} v={s['script_version'] or '-':<6} scene={s.get('scene_state','') or '-':<16} {s['mtime']}  refs={len(s['refs'])}")
 
 
 def cmd_verify(args):
     d = Path(args.dir)
     mf, data = load_dir(d)
     expect = args.expect_version or data.get("script_version") or ""
+    expect_scene = args.expect_scene or data.get("scene_state") or ""
     issues = []
-    versions = {}
+    versions, scenes = {}, {}
     for s in data["shots"]:
         fp = d / s["file"]
         if not fp.exists():
@@ -124,14 +127,22 @@ def cmd_verify(args):
             issues.append(f"非定稿：{s['shot']}（{s['status']}）")
         if expect and v != expect:
             issues.append(f"版本不符：{s['shot']} 记 {v}，期望 {expect}")
+        ss = s.get("scene_state") or "(未记)"
+        scenes.setdefault(ss, []).append(s["shot"])
+        if expect_scene and ss != expect_scene:
+            issues.append(f"场景版本不符：{s['shot']} 记 {ss}，期望 {expect_scene}")
     print(f"清单 {mf}  批次 {data.get('batch','')}  共 {len(data['shots'])} 段")
     print("版本分布：" + "；".join(f"{v}×{len(vs)}" for v, vs in versions.items()))
+    print("场景 state 分布：" + "；".join(f"{v}×{len(vs)}" for v, vs in scenes.items()))
+    if len(scenes) > 1:
+        issues.append("场景 state 不一致（混用两版场景即混源）：" +
+                      "；".join(f"{v}×{len(vs)}" for v, vs in scenes.items()))
     if issues:
         print(f"\n同源核对：{len(issues)} 项待处理——")
         for it in issues:
             print("  -", it)
         sys.exit(1)
-    print("\n同源核对：通过（全部定稿、版本一致、文件在位）")
+    print("\n同源核对：通过（全部定稿、版本一致、场景 state 一致、文件在位）")
 
 
 def selftest():
@@ -140,12 +151,15 @@ def selftest():
         for n in ["LOOK  0 · 开场.mp4", "LOOK 01 · 甲.mp4", "LOOK 02 · 乙.mp4"]:
             (tmp / n).write_bytes(b"stub")
         ns = argparse.Namespace(dir=str(tmp), pattern="*.mp4", batch="test",
-                                script_version="v21", force=False)
+                                script_version="v21", scene_state="S-01@day-crowd",
+                                force=False)
         cmd_init(ns)
         _, data = load_dir(tmp)
         assert len(data["shots"]) == 3 and data["shots"][0]["shot"].startswith("LOOK  0"), "初始化排序错误"
+        assert data["scene_state"] == "S-01@day-crowd", "场景 state 未写入"
         ns2 = argparse.Namespace(dir=str(tmp), shot="LOOK 01", script_version=None,
-                                 status="定稿", note="优选第 2 次", refs="a.jpg;b.jpg")
+                                 status="定稿", note="优选第 2 次", refs="a.jpg;b.jpg",
+                                 scene_state=None)
         cmd_set(ns2)
         _, data = load_dir(tmp)
         s = find_shot(data, "LOOK 01")
@@ -155,10 +169,34 @@ def selftest():
         buf = io.StringIO()
         try:
             with contextlib.redirect_stdout(buf):
-                cmd_verify(argparse.Namespace(dir=str(tmp), expect_version="v21"))
+                cmd_verify(argparse.Namespace(dir=str(tmp), expect_version="v21",
+                                              expect_scene=""))
             raise AssertionError("verify 应报 2 项非定稿")
         except SystemExit as e:
             assert e.code == 1, f"verify 退出码应为 1，实际 {e.code}"
+        # 全部定稿 + 同一场景 state → 应通过
+        for name in ["LOOK  0 · 开场", "LOOK 02 · 乙"]:
+            cmd_set(argparse.Namespace(dir=str(tmp), shot=name, script_version=None,
+                                      status="定稿", note=None, refs=None,
+                                      scene_state=None))
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            cmd_verify(argparse.Namespace(dir=str(tmp), expect_version="v21",
+                                          expect_scene="S-01@day-crowd"))
+        assert "通过" in buf.getvalue(), "同源清单应通过"
+        # 混入另一版场景 → 应失败
+        cmd_set(argparse.Namespace(dir=str(tmp), shot="LOOK 02", script_version=None,
+                                   status=None, note=None, refs=None,
+                                   scene_state="S-01@night-empty"))
+        buf = io.StringIO()
+        try:
+            with contextlib.redirect_stdout(buf):
+                cmd_verify(argparse.Namespace(dir=str(tmp), expect_version="v21",
+                                              expect_scene=""))
+            raise AssertionError("verify 应报场景 state 不一致")
+        except SystemExit as e:
+            assert e.code == 1, f"场景不一致退出码应为 1，实际 {e.code}"
+        assert "场景 state 不一致" in buf.getvalue(), "未输出场景不一致清单"
         print("selftest PASS")
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
@@ -173,14 +211,17 @@ def main():
     p1 = sub.add_parser("init", help="扫描目录建清单")
     p1.add_argument("dir"); p1.add_argument("--pattern", default="*.mp4")
     p1.add_argument("--batch", default=""); p1.add_argument("--script-version", default="")
+    p1.add_argument("--scene-state", default="", help="场景单 state（如 S-01@day-crowd）")
     p1.add_argument("--force", action="store_true")
     p2 = sub.add_parser("set", help="更新条目")
     p2.add_argument("dir"); p2.add_argument("--shot", required=True)
     p2.add_argument("--script-version"); p2.add_argument("--status"); p2.add_argument("--note")
+    p2.add_argument("--scene-state", help="该镜使用的场景 state")
     p2.add_argument("--refs", help="分号分隔的参考图清单")
     p3 = sub.add_parser("list", help="列出清单"); p3.add_argument("dir")
     p4 = sub.add_parser("verify", help="同源核对")
     p4.add_argument("dir"); p4.add_argument("--expect-version", default="")
+    p4.add_argument("--expect-scene", default="", help="期望的场景 state")
     p5 = sub.add_parser("selftest", help="自检")
     args = ap.parse_args()
     if args.cmd == "init":
