@@ -1,6 +1,6 @@
 ---
 name: ai-short-play-video-creation
-version: 1.14.0
+version: 1.15.0
 description: "AI 短剧创作工作流技能（动态漫/漫剧/写实风等形态通用）。当用户要制作 AI 短剧、漫剧、动态漫、竖屏微短剧、漫画风视频，或有一句话剧情/剧情梗概要快速成片，或提到 Seedance、即梦、Jimeng、Gemini 分镜脚本、Nano Banana 参考图、宫格分镜（4/6/9/25宫格）、@素材引用、素材锚点/参考图一致性、引用核对、多集项目、连续性台账、段缝衔接、转场（剪辑做还是模型做）、视频编辑/延长、配音/旁白/TTS/音色、BGM 卡点、字幕同步、人脸审核限制/人脸不过审、内容审核敏感词、负面约束失效（写了不要还出现）、Liblib 哩布哩布、分镜提示词、时间轴提示词、分镜图、关键帧候选、三层工艺分离、拟物化角色偏置、视频生成提示词、长剧多集改编、微表情/面部表演、打戏/动作段、情绪节拍与开场钩子、多人戏调度/站位轴线、场景首现与重复出场交代、视觉验收、分镜 JSON 校验、九宫格拼图、镜头衔接、参考视频对标（学结构不抄内容）时使用；生成的视频出现人脸漂移换人、角色重复、多余字幕水印、风格漂移、拼接跳帧等故障要排障时也用。产出系统提示词、工程级分镜蓝图、排障速查与操作指引。AI short-drama video creation with Seedance / Jimeng (motion comic, style-agnostic): storyboard agent prompts, grid storyboard JSON, @reference assets, transition & editing, dubbing, continuity ledgers, segment-seam continuity, blocking & axis, scene staging, FACS micro-expression, action previs, emotional beats & hooks, face-check workarounds, negative-prompt workarounds, reference-video benchmarking, troubleshooting, multi-episode adaptation."
 license: MIT
 ---
@@ -18,7 +18,7 @@ license: MIT
 | 人物参考图过不了 Seedance 人脸审核 | **路线 C：人脸规避五法**（可与 A/B 叠加） |
 | 整部短剧/小说要做成多集 | **多集工作流**（先分集，逐集走 A/B） |
 
-## 触发示例（26 类话术，命中即可直接开工）
+## 触发示例（28 类话术，命中即可直接开工）
 
 | 用户话术示例 | 落点 |
 |---|---|
@@ -38,6 +38,8 @@ license: MIT
 | 「拟人化建筑/器物当主角，素材总崩怎么防」 | 非人形偏置对策（`references/frame-industrial.md`） |
 | 「两个人对话的戏，机位和站位怎么排」 | 多人戏调度（铁律） |
 | 「这个场景之前出现过吗，这次还要不要重新交代一遍」 | 场景展示判断（多集工作流） |
+| 「场景图怎么写成可复现的提示词，换人也能重出一张」 | 场景板（`references/scene-plates.md`） |
+| 「一批镜头混用了两版场景，接缝跳，怎么查」 | 场景 state 同源核对（`scripts/manifest.py`／`scripts/qa_batch.py`） |
 | 「多段生成的段间衔接生硬，人物消失又出现」 | 段缝衔接（`references/continuity-log.md`） |
 | 「一批分镜生成完了，帮我跑一遍接缝量化、出底账」 | `scripts/qa_batch.py` |
 | 「记清楚每段成片是哪版提示词生成的，别混源」 | `scripts/manifest.py` |
@@ -75,6 +77,7 @@ Seedance 对真实人脸有人脸检测，人物参考图常被拦。五种规�
 - **@ 引用铁律**：所有镜头提示词必须 `@素材名` 关联参考素材，禁止纯文字描述代替；`@名称` 必须与视频生成平台里上传的素材名完全一致，否则引用失效。
 - **引用即锁定**：@引用素材后禁止再用文字重描该主体外貌（脸型/发型/服装）——ref 与文字是权重冲突不是叠加，重描会让 ref 失效、角色变形；外貌在素材阶段定稿，镜头提示词只写动作/景别/运镜/光线。同框多角色时 1 主 ref + 其余文字/剪影，红线见 `references/asset-workflow.md`。
 - **三层工艺分离**：素材图=身份证（平光/信息优先）、分镜图=视频首帧（戏剧光/三层景深）、视频段=动作连贯——三层参数不可互套。素材阶段的中性风格词不进分镜图（会压掉戏剧光）；分镜图只写动作、禁止重描外貌。镜头级「先图后视频」工序与自动选档见 `references/frame-industrial.md`。
+- **场景资产（场景板）**：同一场景跨镜复用先建 `S-*` 场景板——Location＋state（如 `S-01@day-crowd`）＋可选 View；场景板管地理、固定锚点、光线、空场与文字政策，分镜只引用场景 ID 与锁定句，不重描外观。同批镜头混用两个 state 即混源，接缝会跳；换代先改场景单再整批换图。写法、反推与验收见 `references/scene-plates.md`。
 - **提示词三种写法**：①清单式（默认，单镜头精准控制）：`@角色名 @场景名，[动作/状态]，[景别代码]，[摄像机运动]，[光线]，[色调]，[风格标签]，[质量增强词]`；②时间轴式（多镜一条/宫格直生/长镜头）：`【风格】【时长】【画幅】` + `0-X秒：[镜头]+[画面]+[动作]` 分段 + `【声音】` + `【参考】@图片1 作为首帧`；③分镜图 8 段式（出每镜关键帧时用）：CHARACTER/BACKGROUND/ACTION/SCENE/CAMERA/LIGHT/TEXT/STYLE，写法与完整示例见 `references/frame-industrial.md`。
 - **景别代码**：ECU 极端特写 / CU 特写 / MCU 近景 / MS 中景 / LS 全景 / ELS 大远景。画面内运动（人物动作）与摄影机运动分开描述，不混写。
 - **黄金节奏**：每 25–30 秒一个 ⚡PEAK 情绪峰值；单序列 ≤6 镜；禁止连续同景别超过 2 镜；首镜 2 秒内出现视觉钩子；每镜必标转场代码 + 一句执行说明。台词时长折算：中文语速约 4–5 字/秒，镜头时长 ≥ 台词字数 ÷ 5，超了就拆镜或精简台词。完整词库（运镜/光线/质量词/24 种转场及情绪选用表）在 `references/agent-prompt.md`。本条管单片段内的镜头节奏；整集/多集的长叙事节奏设计（红果必爆 7 招 / 180 秒时间轴 / 24 集规划）用 `onlyshot-drama` 技能。
@@ -167,6 +170,7 @@ Seedance 对真实人脸有人脸检测，人物参考图常被拦。五种规�
 | `references/grid-storyboard.md` | 走路线 B 时；或用户给了剧情梗概要快速出片时 |
 | `references/face-workarounds.md` | 人物参考图被人脸审核拦截、或用户主动问怎么绕人脸限制时 |
 | `references/asset-workflow.md` | 做人物/场景素材时；保角色一致性时（锚点法 / ref 数量红线 / 候选图选择 / 把关清单 / 文字入图规则 / ref 库规模标准） |
+| `references/scene-plates.md` | 场景跨镜复用、场景换代或接缝跳光跳色时；场景板结构（Location/state/View）、空场与文字政策、反推补存量、场景图验收 |
 | `references/frame-industrial.md` | 出每镜关键帧时；三层工艺分离 / 8 段式写法 / 非人形主角偏置对策 / 4 模选档 / 长提示词并发限流 |
 | `references/prompt-craft.md` | 提示词打不准/漂移时；多素材绑定、作用域与末态法则、时间粒度、否定失效三改法、模型实测档案 |
 | `references/transition-editing.md` | 规划转场（剪辑做还是模型做）、缝的类型命名与帧级切点对齐、编辑已有视频、向前/向后延长、集间延长衔接、接龙 |
@@ -185,7 +189,9 @@ Seedance 对真实人脸有人脸检测，人物参考图常被拦。五种规�
 | `scripts/check_double_root.py` | 技能双根核对与补链（`.zcode`+`.agents` 双根部署）：内容 md5 + 硬链 samefile 逐件核对；只修「内容相同非硬链」（`--fix`），不一致只报告 |
 | `scripts/check_seams.py` | 成片接缝质量量化检测：对相邻分镜「上一段尾帧 vs 下一段首帧」计算 SSIM／亮度差／色相差／饱和差／运动持续性五维指标＋综合偏差排序（模式 A：分镜目录两两成缝；模式 B：拼接成片＋切点列表）；阈值经人工判定样本校准，用于定位与复核视觉上「不顺」的缝 |
 | `scripts/qa_batch.py` | 一键验收管道：分镜目录 → 接缝量化（复用 check_seams）＋清单同源核对 → 底账 Markdown；混源与超阈一次列清（`--json` 供机读） |
-| `scripts/manifest.py` | 分镜生成清单：记录每段视频的提示词版本/参考图/定稿状态；`verify` 核对「相邻两段是否同源」（混源是接缝跳跃的常见结构性来源） |
+| `scripts/manifest.py` | 分镜生成清单：记录每段视频的提示词版本/参考图/场景 state/定稿状态；`verify` 核对「相邻两段是否同源」（混源是接缝跳跃的常见结构性来源） |
+| `scripts/check_scene_plates.py` | 场景板机检：字段完整、ID/state/View 合法、空场与文字政策冲突、光线三件套、字数、敏感词、分镜脚本 S-* 引用跨文件核对 |
+| `scripts/gen_scene_sheet.py` | 场景单生成：数据文件（唯一来源）→ 渲染 md → 可选调 article-format 生成 docx；`--verify` 逐字节回放、`--apply` 写盘、`--docx` 直出 |
 | `scripts/trim_clips.py` | 分镜统一裁切：按帧级规则裁至整拍时长（默认 5.000 秒）；帧精确（默认）/流复制（`--fast`）双模式，默认干跑、`--apply` 执行 |
 | `scripts/gen_script.py` | 脚本/文档版本生成引擎（单引擎＋数据文件）：按数据里的替换清单逐项校验命中数再写新版；`--verify` 回放验收、`--all` 全量回归（替代逐版复制的快照脚本） |
 | `scripts/fix_table_pagination.py` | docx 分页修复（排版后处理）：表格行不跨页＋跨页表头重复、加粗标题与标签行防孤行、表头行与首数据行同页、操作顺序类短段防页界切半 |
@@ -215,3 +221,4 @@ Seedance 对真实人脸有人脸检测，人物参考图常被拦。五种规�
 - 2026-10-15 v1.12.0 缝的类型与帧级切点对齐：`references/transition-editing.md` 新增同名节——转场命名四类（序幕缝/机位缝/动作缝/落点缝，各带意图与验收点）＋帧级切点对齐三步（拍长网格换算、裁齐整拍时长、切点 N＝N×整拍时长）；节号顺延（九/十/十一→十/十一/十二）与 `SKILL.md` 内引用同步。
 - 2026-10-17 v1.13.0 接缝检测运动持续性指标：`scripts/check_seams.py` 新增第五指标「运动持续性」——切点两侧各取「接缝帧与其前 tail 秒帧」的帧间运动量（灰度平均绝对差），比值的 log10 偏差归一化（0＝两侧运动量相近；一侧骤停或骤起时升高）；阈值 0.55 经真实样本校准（正常缝 0.013-0.45 自然分布、极端缝 0.64）；JSON 输出含两侧运动量原始值（me_tail/me_head），`--no-flow` 可关闭退回四维；selftest 扩至 8 项。
 - 2026-10-17 v1.14.0 批量生成与验收配套工具（项目实践回流）：新增四件——`scripts/qa_batch.py`（一键验收管道：接缝量化＋清单同源核对＋底账）、`scripts/manifest.py`（生成清单与同源核对）、`scripts/trim_clips.py`（统一裁到整拍时长，帧精确/流复制双模式）、`scripts/gen_script.py`（版本生成引擎：单引擎＋数据文件＋逐字节回放，替代逐版复制快照脚本）；四件均带 selftest（trim_clips/qa_batch 无 ffmpeg 时自动跳过）；十三脚本口径同步（AGENTS/README/CI/project-info）。做法来源：商业短片项目承载层优化（生成器 21 份快照收敛为 16 版数据、回放 16/16；一键 QA 底账与既有手工底账数值逐项一致）。
+- 2026-10-20 v1.15.0 场景资产与场景板（项目实践回流）：①新增 `references/scene-plates.md`——四层资产与引用链、Location/state/View 模型、条目六段正文、十条写法（地理优先、光线可解释、空场三档、文字政策双层、参考声明、禁写运镜）、反推补存量与八项验收；②新增 `scripts/check_scene_plates.py`——场景板机检 12 项（字段、ID/state、政策冲突、光线三件套、字数、敏感词、跨文件 S-* 引用），`--max-chars` 可配；③新增 `scripts/gen_scene_sheet.py`——数据单源渲染场景单 md，可调 article-format 生成 docx，`--verify` 逐字节回放；④`manifest.py` 与 `qa_batch.py` 增 `scene_state` 字段与一致性核对（混用两版场景即混源）；⑤触发示例 26→28 类（场景板、场景 state 混源核查），铁律区补场景资产条；⑥十五脚本口径同步（AGENTS/README/CI/project-info）。做法来源：面料走秀项目场景单交付（反推补存量、数据单源、锁定句唯一定义源、逐镜原样引用、场景机检与视觉验收分工）。

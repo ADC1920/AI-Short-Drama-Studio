@@ -43,7 +43,7 @@ git clone https://github.com/ADC1920/AI-short-play-video-creation.git "$env:USER
 
 ## 第一次使用
 
-按手头材料选一条路线，把对应的话术发给 AI 助手即可。更完整的触发示例写在 `SKILL.md` 的「触发示例」一节，共 26 类场景。
+按手头材料选一条路线，把对应的话术发给 AI 助手即可。更完整的触发示例写在 `SKILL.md` 的「触发示例」一节，共 28 类场景。
 
 1. 有完整剧本：让助手读 `references/agent-prompt.md`，把其中的系统提示词贴进新对话，再输入剧本。
 2. 只有梗概：让助手按 `references/grid-storyboard.md` 生成宫格分镜 JSON，用 `scripts/validate_storyboard.py` 机检，再用 `scripts/make_grid.py` 拼图。
@@ -56,8 +56,8 @@ git clone https://github.com/ADC1920/AI-short-play-video-creation.git "$env:USER
 ```
 .
 ├── SKILL.md                 主入口：路线、铁律、平台约束、排障、索引
-├── references/              13 篇工艺文档，按场景加载
-├── scripts/                 13 个工程脚本，全部带 selftest
+├── references/              14 篇工艺文档，按场景加载
+├── scripts/                 15 个工程脚本，全部带 selftest
 ├── examples/demo-multi-ep/  最小多集样例，同时用于回归测试
 ├── docs/                    工作区导航与技能更新说明
 └── .github/workflows/       CI：脚本自检与样例端到端回归
@@ -78,7 +78,9 @@ git clone https://github.com/ADC1920/AI-short-play-video-creation.git "$env:USER
 | `check_double_root.py` | 双根部署核对与补链 | 无 |
 | `check_seams.py` | 接缝质量量化：SSIM、亮度、色相、饱和、运动持续性 | numpy、Pillow，抽帧需 ffmpeg |
 | `qa_batch.py` | 一键验收：接缝检测加清单同源核对，输出底账 | numpy、Pillow，可选 ffmpeg |
-| `manifest.py` | 分镜生成清单：提示词版本、参考图、定稿状态 | 无 |
+| `manifest.py` | 分镜生成清单：提示词版本、参考图、场景 state、定稿状态 | 无 |
+| `check_scene_plates.py` | 场景板机检：字段、ID/state、政策冲突、光线、字数、敏感词、跨文件引用 | 无 |
+| `gen_scene_sheet.py` | 场景单生成：数据单源渲染 md，可选调 article-format 出 docx | python-docx（出 docx 时） |
 | `trim_clips.py` | 分镜统一裁切到整拍时长，帧精确 | ffmpeg |
 | `gen_script.py` | 脚本或文档的版本生成引擎，带命中数校验与回放 | 无 |
 | `fix_table_pagination.py` | docx 分页修复：表格不跨页、表头重复、防孤行 | python-docx |
@@ -118,6 +120,8 @@ python scripts/qa_batch.py --selftest
 python scripts/manifest.py --selftest
 python scripts/trim_clips.py --selftest
 python scripts/gen_script.py --selftest
+python scripts/check_scene_plates.py --selftest
+python scripts/gen_scene_sheet.py --selftest
 ```
 
 CI 在每次 push 和 PR 时执行同一组自检，并对样例项目跑端到端回归。
