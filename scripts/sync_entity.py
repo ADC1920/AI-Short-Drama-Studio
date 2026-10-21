@@ -37,13 +37,11 @@ def file_map(root):
     if not root.is_dir():
         return out
     for dirpath, dirnames, filenames in os.walk(root):
+        dirnames[:] = [d for d in dirnames if d not in EXCLUDE]
         rel_dir = Path(dirpath).relative_to(root)
-        if rel_dir.parts:
-            if rel_dir.parts[0] in EXCLUDE:
-                dirnames[:] = []
-                continue
-        else:
-            dirnames[:] = [d for d in dirnames if d not in EXCLUDE]
+        if rel_dir.parts and rel_dir.parts[0] in EXCLUDE:
+            dirnames[:] = []
+            continue
         for f in filenames:
             rel = rel_dir / f
             if rel.parts[0] in EXCLUDE:
