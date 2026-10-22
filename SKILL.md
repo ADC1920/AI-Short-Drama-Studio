@@ -1,6 +1,6 @@
 ---
 name: ai-short-play-video-creation
-version: 1.16.0
+version: 1.17.0
 description: "AI 短剧创作工作流技能（动态漫/漫剧/写实风等形态通用）。当用户要制作 AI 短剧、漫剧、动态漫、竖屏微短剧、漫画风视频，或有一句话剧情/剧情梗概要快速成片，或提到 Seedance、即梦、Jimeng、Gemini 分镜脚本、Nano Banana 参考图、宫格分镜（4/6/9/25宫格）、@素材引用、素材锚点/参考图一致性、引用核对、多集项目、连续性台账、段缝衔接、转场（剪辑做还是模型做）、视频编辑/延长、配音/旁白/TTS/音色、BGM 卡点、字幕同步、人脸审核限制/人脸不过审、内容审核敏感词、负面约束失效（写了不要还出现）、Liblib 哩布哩布、分镜提示词、时间轴提示词、分镜图、关键帧候选、三层工艺分离、拟物化角色偏置、视频生成提示词、长剧多集改编、微表情/面部表演、打戏/动作段、情绪节拍与开场钩子、多人戏调度/站位轴线、场景首现与重复出场交代、视觉验收、分镜 JSON 校验、九宫格拼图、镜头衔接、参考视频对标（学结构不抄内容）时使用；生成的视频出现人脸漂移换人、角色重复、多余字幕水印、风格漂移、拼接跳帧等故障要排障时也用。产出系统提示词、工程级分镜蓝图、排障速查与操作指引。AI short-drama video creation with Seedance / Jimeng (motion comic, style-agnostic): storyboard agent prompts, grid storyboard JSON, @reference assets, transition & editing, dubbing, continuity ledgers, segment-seam continuity, blocking & axis, scene staging, FACS micro-expression, action previs, emotional beats & hooks, face-check workarounds, negative-prompt workarounds, reference-video benchmarking, troubleshooting, multi-episode adaptation."
 license: MIT
 ---
@@ -18,7 +18,7 @@ license: MIT
 | 人物参考图过不了 Seedance 人脸审核 | **路线 C：人脸规避五法**（可与 A/B 叠加） |
 | 整部短剧/小说要做成多集 | **多集工作流**（先分集，逐集走 A/B） |
 
-## 触发示例（28 类话术，命中即可直接开工）
+## 触发示例（30 类话术，命中即可直接开工）
 
 | 用户话术示例 | 落点 |
 |---|---|
@@ -49,6 +49,8 @@ license: MIT
 | 「这段打戏/动作戏的镜头怎么设计」 | 打戏预演（`references/action-previs.md`） |
 | 「这一集情绪不够燃，开场怎么留人」 | 情绪节拍与开场钩子（`references/emotion-beat-curve.md`） |
 | 「提示词写了不要出现 X，结果还是出现」 | 排障速查（否定失效） |
+| 「提示词里全是电影感、高级感，想改成能拍出来的描述」 | 词句层（`references/prompt-craft.md`） |
+| 「走秀或行走镜头脚打滑、动作没做完、推近变成变焦」 | 词句层与 `scripts/lint_prompt.py` |
 | 「照这条爆款视频/链接做一版」（给参考视频） | 对标参考流程 |
 
 ## 路线 A：分镜智能体（工程级分镜）
@@ -172,7 +174,7 @@ Seedance 对真实人脸有人脸检测，人物参考图常被拦。五种规�
 | `references/asset-workflow.md` | 做人物/场景素材时；保角色一致性时（锚点法 / ref 数量红线 / 候选图选择 / 把关清单 / 文字入图规则 / ref 库规模标准） |
 | `references/scene-plates.md` | 场景跨镜复用、场景换代或接缝跳光跳色时；场景板结构（Location/state/View）、空场与文字政策、反推补存量、场景图验收 |
 | `references/frame-industrial.md` | 出每镜关键帧时；三层工艺分离 / 8 段式写法 / 非人形主角偏置对策 / 4 模选档 / 长提示词并发限流 |
-| `references/prompt-craft.md` | 提示词打不准/漂移时；多素材绑定、作用域与末态法则、时间粒度、否定失效三改法、模型实测档案 |
+| `references/prompt-craft.md` | 提示词打不准/漂移时；多素材绑定、作用域与末态法则、时间粒度、否定失效三改法、模型实测档案；词句层的空词替换、抽象词五步、运镜消歧、步态物理锁、完成态、身份块与运动块、五段式、失败编码（配 `scripts/lint_prompt.py`） |
 | `references/transition-editing.md` | 规划转场（剪辑做还是模型做）、缝的类型命名与帧级切点对齐、编辑已有视频、向前/向后延长、集间延长衔接、接龙 |
 | `references/continuity-log.md` | 多集项目一致性管理：连续性账 / 段缝衔接 / Take 记录 / 提示词版本账 / 证据分级 |
 | `references/audio-voice.md` | 配音/旁白/BGM/音效设计：四轨规划、角色音色表、台词标注公式、Edge TTS 落地、混音检查 |
@@ -225,3 +227,4 @@ Seedance 对真实人脸有人脸检测，人物参考图常被拦。五种规�
 - 2026-10-20 v1.15.0 场景资产与场景板（项目实践回流）：①新增 `references/scene-plates.md`——四层资产与引用链、Location/state/View 模型、条目六段正文、十条写法（地理优先、光线可解释、空场三档、文字政策双层、参考声明、禁写运镜）、反推补存量与八项验收；②新增 `scripts/check_scene_plates.py`——场景板机检 12 项（字段、ID/state、政策冲突、光线三件套、字数、敏感词、跨文件 S-* 引用），`--max-chars` 可配；③新增 `scripts/gen_scene_sheet.py`——数据单源渲染场景单 md，可调 article-format 生成 docx，`--verify` 逐字节回放；④`manifest.py` 与 `qa_batch.py` 增 `scene_state` 字段与一致性核对（混用两版场景即混源）；⑤触发示例 26→28 类（场景板、场景 state 混源核查），铁律区补场景资产条；⑥十五脚本口径同步（AGENTS/README/CI/project-info）。做法来源：面料走秀项目场景单交付（反推补存量、数据单源、锁定句唯一定义源、逐镜原样引用、场景机检与视觉验收分工）。
 - 2026-10-21 v1.15.1 实体同步缓存排除修复：`sync_entity.py` 的 EXCLUDE 检查原先只作用于顶层目录，`scripts/__pycache__` 等子目录缓存仍会被同步进技能实体；改为每层目录都剪枝 EXCLUDE，selftest 保持通过。
 - 2026-10-21 v1.16.0 docx 代码块视觉后处理：新增 `scripts/style_code_blocks.py`——md2docx 的围栏代码块只有等宽字体、没有底纹边框，提示词这类需整段复制的内容与正文分不清；脚本对 Consolas 段落补浅底纹（`--shd` 可改）＋左侧竖线（`--border` 可改）、左缩进 0.3cm 且首行缩进清零（复制不带行首空格）、`keepLines` 防页界拆断；pPr 子元素按 OOXML schema 顺序插入（`insert_element_before`），默认写回原文件、`--dry-run` 只统计不写盘，带 5 项 selftest。十六脚本口径同步（AGENTS/README/CI/project-info）。做法来源：面料走秀项目 docx 排版回归（长提示词代码块被分页切断）。
+- 2026-10-22 v1.17.0 词句层写法与词层机检：①新增 `scripts/lint_prompt.py`——检查空词（cinematic/8K/电影感/高级感等）、推近未说明推镜还是变焦、摇镜头未写轴向、一镜多运镜、走秀行进缺步态物理锁、有转身缺完成态、负面约束过量；`--script` 查分镜脚本、`--text` 查单条提示词、`--latest` 按 `--glob` 取版本号最大者、`--line general` 关闭走秀口径；selftest 四项（空词、缺步态锁、多运镜、干净样例）；②`references/prompt-craft.md` 增第八节「词句层」——空词表与 perfect anatomy 处理、抽象词五步转写与替换表、运镜消歧八式、步态物理锁、完成态、动作倒放与截断、多运镜过载、身份块与运动块分离、五段式骨架、F01 到 F19 常用失败编码与成本阶梯；③触发示例 28→30 类；④十七脚本口径同步（AGENTS/README/CI/project-info）。做法来源：面料走秀项目提示词写法手册与失败编码表，经三份外部写法库逐条核对后按技能口径改写。
