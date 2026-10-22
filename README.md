@@ -57,7 +57,7 @@ git clone https://github.com/ADC1920/AI-short-play-video-creation.git "$env:USER
 .
 ├── SKILL.md                 主入口：路线、铁律、平台约束、排障、索引
 ├── references/              14 篇工艺文档，按场景加载
-├── scripts/                 16 个工程脚本，全部带 selftest
+├── scripts/                 17 个工程脚本，全部带 selftest
 ├── examples/demo-multi-ep/  最小多集样例，同时用于回归测试
 ├── docs/                    工作区导航与技能更新说明
 └── .github/workflows/       CI：脚本自检与样例端到端回归
@@ -80,6 +80,7 @@ git clone https://github.com/ADC1920/AI-short-play-video-creation.git "$env:USER
 | `qa_batch.py` | 一键验收：接缝检测加清单同源核对，输出底账 | numpy、Pillow，可选 ffmpeg |
 | `manifest.py` | 分镜生成清单：提示词版本、参考图、场景 state、定稿状态 | 无 |
 | `check_scene_plates.py` | 场景板机检：字段、ID/state、政策冲突、光线、字数、敏感词、跨文件引用 | 无 |
+| `lint_prompt.py` | 提示词词层机检：空词、运镜歧义、一镜多运镜、步态物理锁、完成态、负面词过量 | 无 |
 | `gen_scene_sheet.py` | 场景单生成：数据单源渲染 md，可选调 article-format 出 docx | python-docx（出 docx 时） |
 | `trim_clips.py` | 分镜统一裁切到整拍时长，帧精确 | ffmpeg |
 | `gen_script.py` | 脚本或文档的版本生成引擎，带命中数校验与回放 | 无 |
@@ -123,6 +124,7 @@ python scripts/trim_clips.py --selftest
 python scripts/gen_script.py --selftest
 python scripts/check_scene_plates.py --selftest
 python scripts/gen_scene_sheet.py --selftest
+python scripts/lint_prompt.py --selftest
 python scripts/style_code_blocks.py --selftest
 ```
 
