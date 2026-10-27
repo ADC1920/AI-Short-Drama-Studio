@@ -11,7 +11,7 @@
 关闭本 ZCode 会话后，用 PowerShell 7 执行：
 
 ```powershell
-pwsh -NoProfile -Command "Rename-Item -LiteralPath 'D:\Computer Software\24-Zcode DeskTop\Zcode Data\Al-short-play-video-creation' -NewName 'AI-Short-Drama-Studio'"
+pwsh -NoProfile -Command "Rename-Item -LiteralPath '<工作区父目录>\Al-short-play-video-creation' -NewName 'AI-Short-Drama-Studio'"
 ```
 
 或在资源管理器里直接重命名。
@@ -25,7 +25,7 @@ pwsh -NoProfile -Command "Rename-Item -LiteralPath 'D:\Computer Software\24-Zcod
 验证：
 
 ```powershell
-cd 'D:\Computer Software\24-Zcode DeskTop\Zcode Data\AI-Short-Drama-Studio'
+cd '<工作区父目录>\AI-Short-Drama-Studio'
 git status --short          # 应为空
 git remote -v               # 应指向 AI-Short-Drama-Studio
 python scripts/studio.py --selftest
