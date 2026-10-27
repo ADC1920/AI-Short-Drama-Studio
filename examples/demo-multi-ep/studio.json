@@ -1,0 +1,10 @@
+{
+  "schema": 1,
+  "title": "演示多集项目",
+  "aspect": "9:16",
+  "model": "seedance-2.5",
+  "episodes": 1,
+  "scene_plate": null,
+  "notes": "仓库回归夹具：素材为占位色块图，分镜 JSON 为合法中文样例。",
+  "created": "2026-10-27 00:00:00"
+}

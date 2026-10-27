@@ -9,7 +9,10 @@
   4) 同步（默认只发新增与更新；--prune 才删除目标多余件）
   5) 复核（重扫差异面，要求技能面零差异）
 
-排除项 EXCLUDE（承载文件与仓库级资产，不入实体）：.git / AGENTS.md / docs / memory / .github / examples
+排除项 EXCLUDE（承载文件与仓库级资产、工具运行时残留，不入实体）：
+  .git / AGENTS.md / docs / memory / .github / examples / __pycache__
+  .v2c（video2code 插件写入的运行时指针，含本机绝对路径）
+  out / .studio（本地生成的看板与演示产物）
 （新增这类内容时把顶层名加进脚本顶部 EXCLUDE 常量。）
 
 用法:
@@ -26,7 +29,8 @@ import tempfile
 from datetime import datetime
 from pathlib import Path
 
-EXCLUDE = {".git", "AGENTS.md", "docs", "memory", ".github", "examples", "__pycache__"}
+EXCLUDE = {".git", "AGENTS.md", "docs", "memory", ".github", "examples", "__pycache__",
+           ".v2c", "out", ".studio"}
 MAX_LIST = 20  # 差异清单每类最多打印条数
 
 
@@ -169,6 +173,10 @@ def selftest():
         (src / "docs").mkdir()
         (src / "memory").mkdir()
         (src / "examples").mkdir()
+        (src / ".v2c").mkdir()
+        (src / ".v2c" / "plugin_root").write_text("<plugin-root>/x", encoding="utf-8")
+        (src / "out").mkdir()
+        (src / "out" / "board.html").write_text("demo", encoding="utf-8")
         (src / "SKILL.md").write_text("v2", encoding="utf-8")
         (src / "references" / "a.md").write_text("new-a", encoding="utf-8")
         (src / "references" / "b.md").write_text("new-b", encoding="utf-8")
@@ -191,6 +199,8 @@ def selftest():
         assert (dst / "references" / "b.md").exists(), "新增未生效"
         assert not (dst / "AGENTS.md").exists(), "排除件被误同步"
         assert not (dst / "docs").exists() and not (dst / "memory").exists() and not (dst / "examples").exists(), "排除目录被误同步"
+        assert not (dst / ".v2c").exists(), "运行时残留 .v2c 被误同步（含本机路径）"
+        assert not (dst / "out").exists() and not (dst / ".studio").exists(), "本地演示产物被误同步"
         assert (dst / "references" / "stale.md").exists(), "默认不应删除多余件"
         assert bak.is_dir() and any(bak.iterdir()), "备份未生成"
         assert run(str(dst), source=str(src), backup_dir=str(bak), prune=True) == 0
@@ -198,7 +208,7 @@ def selftest():
         bad = root / "bad"
         bad.mkdir()
         assert run(str(bad), source=str(src), backup_dir=str(bak)) != 0, "非技能实体目标未被拒绝"
-    print("selftest PASS（差异扫描 / 备份 / dry-run 不写 / 新增与更新 / 排除件未动 / "
+    print("selftest PASS（差异扫描 / 备份 / dry-run 不写 / 新增与更新 / 排除件与 .v2c 运行时未动 / "
           "多余件默认保留 / prune 删除 / 非实体目标拒绝 / 复核通过）")
     return 0
 
