@@ -1,6 +1,6 @@
 # AI 短剧创作工作流
 
-[![selftest](https://github.com/ADC1920/AI-short-play-video-creation/actions/workflows/selftest.yml/badge.svg)](https://github.com/ADC1920/AI-short-play-video-creation/actions/workflows/selftest.yml)
+[![selftest](https://github.com/ADC1920/AI-Short-Drama-Studio/actions/workflows/selftest.yml/badge.svg)](https://github.com/ADC1920/AI-Short-Drama-Studio/actions/workflows/selftest.yml)
 
 把剧本、梗概或一个选题，做成可以直接出片的 AI 视频。整套流程按 Agent Skill 组织，采用**五工位流水线**，一个项目一个目录，工位进度按产物自动判定，改稿按层回流。默认出片平台是即梦 Seedance。
 
@@ -49,14 +49,14 @@ python scripts/short_plan.py --script 脚本.md                            # 口
 
 ## 安装
 
-克隆到 Agent 的技能目录，目录名保持 `ai-short-play-video-creation`：
+克隆到 Agent 的技能目录，目录名保持 `ai-short-drama-studio`：
 
 ```bash
 # Linux / macOS / Git Bash
-git clone https://github.com/ADC1920/AI-short-play-video-creation.git ~/.agents/skills/ai-short-play-video-creation
+git clone https://github.com/ADC1920/AI-Short-Drama-Studio.git ~/.agents/skills/ai-short-drama-studio
 
 # Windows PowerShell
-git clone https://github.com/ADC1920/AI-short-play-video-creation.git "$env:USERPROFILE\.agents\skills\ai-short-play-video-creation"
+git clone https://github.com/ADC1920/AI-Short-Drama-Studio.git "$env:USERPROFILE\.agents\skills\ai-short-drama-studio"
 ```
 
 也可以先克隆到任意位置，再把整个目录复制进技能扫描路径（`~/.agents/skills/`、`~/.claude/skills/`，或其他平台的对应目录）。技能本身没有运行时依赖，装好即可使用，脚本按需另装。
