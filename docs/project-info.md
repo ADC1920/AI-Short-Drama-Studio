@@ -4,20 +4,24 @@
 
 ## 一、架构
 
-技能包三段式：主入口 `SKILL.md`（触发示例 30 类 / 三路线决策 / 对标参考流程 / 铁律与核心公式 / 平台硬约束 / 成本纪律 / 排障速查 / 多集工作流）→ `references/` 14 篇按需加载工艺文档 → `scripts/` 17 个工程脚本。数据流：用户素材（完整剧本 / 一句话梗概）→ 路线判定（A 分镜智能体 / B 宫格直生 / C 人脸规避）→ 分镜蓝图或宫格 JSON（`validate_storyboard.py` 机检）→ 素材锚点与 @ 引用（`check_refs.py` 核对）→ 逐镜生成 / 直生视频 → 衔接后期与配音。本工作区（git 仓库）为开发源；发布面=GitHub；使用面=本机技能实体（静态复制，`scripts/sync_entity.py` 一键同步）。
+技能包三段式：主入口 `SKILL.md`（触发示例 37 类 / 五工位流水线双形态 / 对标参考流程 / 铁律与核心公式 / 平台硬约束 / 成本纪律 / 排障速查 / 项目层多集）→ `references/` 16 篇按需加载工艺文档 → `scripts/` 19 个工程脚本。数据流：用户素材（完整剧本 / 一句话梗概）→ 工作室项目（`studio.py init`：`studio.json` + `素材/` + `场景板/` + 各集三件）→ 五工位推进（剧本台 → 角色与场景台 → 分镜台〔技法 A 分镜智能体 / 技法 B 宫格直生〕→ 出片台 → 后期台）→ 门禁串联（`studio.py check`：`validate_storyboard` / `check_refs` / `manifest verify` / `check_scene_plates`）→ 成片与发布包装。改稿按层回流，`studio.py status` 用文件时间给出「资产晚于成片」「分镜晚于视频段」提示。本工作区（git 仓库）为开发源；发布面=GitHub；使用面=本机技能实体（静态复制，`scripts/sync_entity.py` 一键同步）。
 
 ## 二、目标
 
-把一句话剧情或完整剧本变成可执行的 AI 短剧视频（动态漫/漫剧、写实风等形态通用）；本工作区职责=开发、版本化、发布该技能（当前 v1.16.0）。
+把一句话剧情或完整剧本变成可执行的 AI 短剧视频（动态漫/漫剧、写实风等形态通用）；本工作区职责=开发、版本化、发布该技能（当前 v2.1.0）。
 
 ## 三、模块表（关键词锚定列）
 
 | 模块 | 载体 | 关键词锚定（3-8） |
 |---|---|---|
-| 主入口/三路线 | `SKILL.md` | 对标流程、路线A/B/C、铁律、平台硬约束、排障速查、多集工作流、成本纪律、首镜2秒钩子 |
-| 分镜智能体（路线A） | `references/agent-prompt.md` | 系统提示词、镜号、时长、转场、声音设计、尾帧接力 |
-| 宫格分镜（路线B） | `references/grid-storyboard.md` | 4/6/9/25 宫格、分镜JSON、直生15s、拼图 |
-| 人脸审核规避（路线C） | `references/face-workarounds.md` | 墨镜遮挡、网格遮挡、无五官三视图、服装+头部、风格转绘 |
+| 主入口/五工位 | `SKILL.md` | 对标流程、五工位（剧本台/角色与场景台/分镜台/出片台/后期台）、铁律、平台硬约束、排障速查、项目层多集、成本纪律、首镜2秒钩子 |
+| 工作室流程 | `references/studio-workflow.md` | 五工位定义与门禁、studio.json 数据契约、改稿回流表、单集推进命令 |
+| 工作室总控 | `scripts/studio.py` | init/status/check/board、双形态（drama/short）、扫盘进度、当前焦点工位、改稿时间提示、门禁串联 |
+| 短视频工艺 | `references/short-video-studio.md` | 时长预算反推、三档节奏、Hook 六分类、追问四失效、发布包四件、脚本小节结构 |
+| 短端口播机检 | `scripts/short_plan.py` | 口播字数区间、单镜≥1.5s、时间轴断档、钩子小节、发布包三件、`--target` 预算反推 |
+| 分镜智能体（分镜台技法A） | `references/agent-prompt.md` | 系统提示词、镜号、时长、转场、声音设计、尾帧接力 |
+| 宫格分镜（分镜台技法B） | `references/grid-storyboard.md` | 4/6/9/25 宫格、分镜JSON、直生15s、拼图 |
+| 人脸审核规避（角色台技法C） | `references/face-workarounds.md` | 墨镜遮挡、网格遮挡、无五官三视图、服装+头部、风格转绘 |
 | 素材一致性工艺 | `references/asset-workflow.md` | 人物锚点法、ref红线、候选图选择、重构图、首帧四要素 |
 | 分镜图工艺 | `references/frame-industrial.md` | 三层分离、8段式、4模选档、并发限流、非人形偏置 |
 | 提示词进阶 | `references/prompt-craft.md` | 三作用域、末态法则、多素材绑定、否定失效、实测档案 |
