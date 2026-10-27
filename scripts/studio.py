@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""短剧工作室总控（ai-short-play-video-creation 技能 v2.0.0）。
+"""短剧工作室总控（ai-short-drama-studio 技能 v2.0.0）。
 
 把剧本、角色与场景、分镜、出片、后期五个工位收进一个项目目录，
 用一份项目配置 + 实时扫盘给出工位进度、当前焦点工位与改稿影响提示。

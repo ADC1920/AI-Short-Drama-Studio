@@ -1,4 +1,4 @@
-# project-info · AI-short-play-video-creation（三节索引）
+# project-info · AI-Short-Drama-Studio（三节索引）
 
 > 本文件=工作区导航索引（索引式，不复制技能正文）。开工按「任务关键词 → 锚词 → 文件」定位再读，不盲扫全仓（细则 #275/#276）。
 
