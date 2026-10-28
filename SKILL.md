@@ -1,6 +1,6 @@
 ---
 name: ai-short-drama-studio
-version: 2.2.0
+version: 2.3.0
 description: "AI 短剧与短视频工作室（双形态）：短剧做多集叙事（剧本台→角色与场景台→分镜台→出片台→后期台），短视频做单条 1 分钟内（脚本台→素材台→分镜台→出片台→发布台），一项目一目录、产物驱动进度、改稿按层回流。当用户要制作 AI 短剧、漫剧、动态漫、竖屏微短剧，或有一句话剧情/梗概要快速成片，或要做 60 秒内短视频、口播脚本、带货/科普/种草脚本、钩子与开场 3 秒、发布文案与标签，或提到即梦短剧工作室、Seedance、即梦、DreamScript、Anycook、DreamShot、宫格分镜、@素材引用、素材锚点、多集项目、连续性台账、段缝衔接、转场、视频延长、配音/TTS、人脸审核不过、审核敏感词、否定约束失效、分镜提示词、分镜图、关键帧、三层工艺分离、多人戏调度、场景首现、视觉验收、分镜 JSON 校验、参考视频对标、时长预算、完播率时使用；出现人脸漂移、角色重复、多余字幕水印、拼接跳帧、口播超时长等故障要排障时也用。产出工位化流程、分镜蓝图与排障指引。AI short-drama and short-video studio skill (dual form): drama form for multi-episode narrative, short-video form for single clips under 60s. Project directory as single source, artifact-driven progress, layered rework backflow; spoken-word duration budget, pacing tiers, hook taxonomy, publish package, Seedance/Jimeng storyboard prompts, grid storyboard JSON, @reference assets, transitions and editing, dubbing, continuity ledgers, blocking, FACS expressions, action previs, emotional beats, negative-prompt workarounds, troubleshooting, multi-episode adaptation."
 license: MIT
 ---
@@ -39,7 +39,7 @@ license: MIT
 
 **选形态**：一次交付一条且总时长 ≤60 秒 → 短视频（`studio.py init <目录> --form short --target 60`，工位名为脚本台/素材台/分镜台/出片台/发布台）；多集、角色延续、集间衔接 → 短剧（默认）。两种目录兼容，短片起手后续扩系列不用搬家。短视频的时长预算、三档节奏、Hook 六分类、发布包见 `references/short-video-studio.md`。
 
-## 触发示例（37 类话术，命中即可直接开工）
+## 触发示例（38 类话术，命中即可直接开工）
 
 | 用户话术示例 | 落点 |
 |---|---|
@@ -67,6 +67,7 @@ license: MIT
 | 「一批分镜生成完了，帮我跑一遍接缝量化、出底账」 | `scripts/qa_batch.py` |
 | 「记清楚每段成片是哪版提示词生成的，别混源」 | `scripts/manifest.py` |
 | 「接缝检查没问题了，帮我把各段统一裁到 5.00 秒」 | `scripts/trim_clips.py` |
+| 「各段都裁好了，帮我把它们拼成一集」 | `scripts/concat_clips.py` |
 | 「脚本要改一版，批量替换并核对都改到了哪些处」 | `scripts/gen_script.py` |
 | 「人物的表情/眼神戏写不好，表情总崩」 | 面部表演工艺（`references/facs-micro-expression.md`） |
 | 「这段打戏/动作戏的镜头怎么设计」 | 打戏预演（`references/action-previs.md`） |
@@ -128,6 +129,7 @@ license: MIT
 
 - **转场决策**：剪辑做还是模型做，四类缝的命名与帧级切点对齐见 `references/transition-editing.md`。
 - **声音四轨**：对白 / 环境音 / 音效 / BGM，音色表与 TTS 落地见 `references/audio-voice.md`。
+- **拼接**：`python scripts/concat_clips.py 第X集/分镜/视频段` 干跑核对参数一致性，`--apply` 拼接成片（同源走流复制零损失；异参数默认拒绝，先统一生成参数重出该段）；`--cuts-out` 导出切点供接缝复核。拼接前先 `trim_clips.py` 裁整拍，否则切点逐段漂移。
 - **接缝量化**：`python scripts/qa_batch.py <成片目录>` 出底账，量化只做粗筛，内容仍以逐镜视觉验收为准。
 - **发布包装**：最佳帧作封面 + 1–3 句分享文案（说清是什么 + 一个具体看点）。
 
@@ -262,6 +264,7 @@ license: MIT
 | `scripts/check_scene_plates.py` | 场景板机检：字段完整、ID/state/View 合法、空场与文字政策冲突、光线三件套、字数、敏感词、分镜脚本 S-* 引用跨文件核对 |
 | `scripts/gen_scene_sheet.py` | 场景单生成：数据文件（唯一来源）→ 渲染 md → 可选调 article-format 生成 docx；`--verify` 逐字节回放、`--apply` 写盘、`--docx` 直出 |
 | `scripts/trim_clips.py` | 分镜统一裁切：按帧级规则裁至整拍时长（默认 5.000 秒）；帧精确（默认）/流复制（`--fast`）双模式，默认干跑、`--apply` 执行 |
+| `scripts/concat_clips.py` | 分镜段拼接成片（后期台）：先核对参数一致性（编码/分辨率/帧率/像素格式，异参数 `-c copy` 拼接会失败或花屏）→ 顺序拼接（同源走流复制零损失）→ 导出累积切点列表供 `check_seams.py`／`qa_batch.py` 复核；异参数默认拒绝，`--reencode-mismatch` 显式重编码到基准；默认干跑、`--apply` 执行、音轨默认丢弃 |
 | `scripts/gen_script.py` | 脚本/文档版本生成引擎（单引擎＋数据文件）：按数据里的替换清单逐项校验命中数再写新版；`--verify` 回放验收、`--all` 全量回归（替代逐版复制的快照脚本） |
 | `scripts/fix_table_pagination.py` | docx 分页修复（排版后处理）：表格行不跨页＋跨页表头重复、加粗标题与标签行防孤行、表头行与首数据行同页、操作顺序类短段防页界切半 |
 | `scripts/style_code_blocks.py` | docx 代码块视觉后处理：给等宽字体（Consolas）段落补浅底纹＋左侧竖线、左缩进对齐、`keepLines` 防跨页拆断；pPr 按 schema 顺序插入，`--dry-run` 只统计不写盘 |
@@ -298,3 +301,4 @@ license: MIT
 - 2026-10-27 v2.2.0 改名：技能标识 `ai-short-play-video-creation` → `ai-short-drama-studio`（GitHub 仓库与本地工作区目录 → `AI-Short-Drama-Studio`）。三处命名按各自规则处理：技能 `name` 字段受加载器规范约束（官方要求 lowercase kebab-case 且必须与技能实体目录同名），故用 `ai-short-drama-studio`；本地工作区目录与仓库名不受该约束，用 `AI-Short-Drama-Studio`。同步更新的引用面：SKILL.md name、README badge 与 clone 地址、AGENTS.md 标题与实体路径、docs/project-info.md 标题、五个脚本文档字符串；本机技能实体目录与触发登记表另随实体迁移。历史更新记录里对旧名的陈述保持原样不改（那是当时的事实）。
 - 2026-10-27 v2.1.0 双形态（短剧 + 短视频）与通用机制补强（用户选 A+B）：①**新增短视频形态**——`studio.py init --form short --target N` 建单条项目（脚本.md / 分镜/ / 成片/ / 发布/），工位名随形态切换（脚本台/素材台/分镜台/出片台/**发布台**），`status/check/board` 全部支持两种形态；②**新增 `scripts/short_plan.py`**——口播字数按目标时长反推（中文 4.0-4.6 字/秒）、三档节奏镜头数、单镜 ≥1.5s、时间轴断档、钩子小节存在且非敷衍、发布包三件齐，selftest 八项；③**新增 `references/short-video-studio.md`**——时长预算表与「不要抄英文旁白 1.5-2 字/秒」的跨语言警告、三档节奏、Hook 六分类与四不要、追问四种失效防御、发布包装四件、脚本文件固定小节、与短剧形态对照；④**通用机制四条进铁律**（两种形态共用）——单镜 1.5s 下限、否定约束配正向清单（与三改法互补）、需求收集防四种走样、发布包装是交付的一部分；⑤短视频发布台门禁=成片+发布包双齐（只有成片不算完成）；⑥触发示例 32→37 类；⑦调研来源 `docs/ecosystem-survey-2026-10-short-video.md`（本地留档）。做法来源：video-spec-builder 追问失效防御与节奏表、hook-lab Hook 六分类、whiteboard-book-video 口播字数实测、short-video-script-skill 发布契约、seedance2.0-prompt-skill 单镜下限与特效双清单（均按本技能口径重写，未搬运原文）。
 - 2026-10-27 v2.0.0 工作室化重构（对标即梦 AI 短剧工作室 2026-10-26 上线形态）：①**骨架从「三路线并列」改为「五工位流水线」**——剧本台 / 角色与场景台 / 分镜台 / 出片台 / 后期台，工位按目录产物判进度、按层回流改稿；原路线 A/B 降为分镜台两种技法，路线 C 降为角色与场景台的审核规避技法。②新增 `references/studio-workflow.md`——五工位定义与门禁、数据契约（`studio.json` + 项目目录）、改稿回流表（改哪层、必须重做哪层、可保留什么）、单集推进命令序列。③新增 `scripts/studio.py`——`init` 建配置与五工位目录（对齐 `init_project.py` 结构，老项目补 `studio.json` 即纳入）、`status` 扫盘出进度／当前焦点工位／「资产晚于成片」「分镜晚于视频段」两类改稿提示（`--json` 机读）、`check` 串起 `validate_storyboard` / `check_refs` / `manifest verify` / `check_scene_plates` 四个门禁；selftest 覆盖空项目→有剧本→有素材分镜→门禁全绿→时间戳回流提示五段。④`SKILL.md` 触发示例 30→32 类（补「项目做到哪一步」「改了剧本哪些镜头要重出」），description 中英双语改写为工作室口径并补 DreamScript / Anycook / DreamShot 等触发词。作者决策：不引入 Web 前端或平台 API 依赖，工作室形态以「项目目录 + 总控脚本 + 工位纪律」在技能层同构实现，避免把可移植技能绑死在某平台页面结构上。
+- 2026-10-28 v2.3.0 分镜拼接脚本（后期台缺口补齐）：此前 `trim_clips.py` 裁整拍之后，「段→集」只剩文档里的手敲 ffmpeg concat 命令，是后期台唯一的命令级断点。新增 `scripts/concat_clips.py` 接管三件事——①参数一致性核对（编码/分辨率/帧率/像素格式，可选音轨）：混参数直接 `-c copy` 拼接会失败或花屏，是手工拼接最常见的翻车点，不一致默认拒绝并提示「先统一生成参数重出该段」；②顺序拼接（同源走流复制，零损失秒出）；③导出累积切点列表，直接喂 `check_seams.py --video --cuts` 与 `qa_batch.py` 模式 B，把「拼完再猜切点在哪」变成可复算数据。配套细节：段名自然排序（段2 在段10 前）、时长不等时提示切点会逐段漂移、异参数可 `--reencode-mismatch` 显式重编码到基准（有损，需明示同意）、音轨默认丢弃（成片声音走后期配音轨）、输出路径按工位结构自动推断（`第X集/分镜/视频段` → `第X集/成片/第X集_成片.mp4`）、默认干跑 `--apply` 执行、带三项 selftest（自然排序+切点导出、异参数拒绝、重编码统一到基准）。二十脚本口径同步（AGENTS/README/CI/project-info）；触发示例 37→38 类；工位五补拼接实操命令。设计取舍：不做「一键全自动后期」——配音/混音/字幕各有独立参数与人工判断（loudnorm 单遍可偏 3.7dB 需跑两遍、BGM ducking 要看台词段），串联成黑盒会掩盖这些需要人看的点；只把「机械且可判定对错」的拼接收进脚本。

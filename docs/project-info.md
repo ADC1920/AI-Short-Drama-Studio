@@ -4,7 +4,7 @@
 
 ## 一、架构
 
-技能包三段式：主入口 `SKILL.md`（触发示例 37 类 / 五工位流水线双形态 / 对标参考流程 / 铁律与核心公式 / 平台硬约束 / 成本纪律 / 排障速查 / 项目层多集）→ `references/` 16 篇按需加载工艺文档 → `scripts/` 19 个工程脚本。数据流：用户素材（完整剧本 / 一句话梗概）→ 工作室项目（`studio.py init`：`studio.json` + `素材/` + `场景板/` + 各集三件）→ 五工位推进（剧本台 → 角色与场景台 → 分镜台〔技法 A 分镜智能体 / 技法 B 宫格直生〕→ 出片台 → 后期台）→ 门禁串联（`studio.py check`：`validate_storyboard` / `check_refs` / `manifest verify` / `check_scene_plates`）→ 成片与发布包装。改稿按层回流，`studio.py status` 用文件时间给出「资产晚于成片」「分镜晚于视频段」提示。本工作区（git 仓库）为开发源；发布面=GitHub；使用面=本机技能实体（静态复制，`scripts/sync_entity.py` 一键同步）。
+技能包三段式：主入口 `SKILL.md`（触发示例 37 类 / 五工位流水线双形态 / 对标参考流程 / 铁律与核心公式 / 平台硬约束 / 成本纪律 / 排障速查 / 项目层多集）→ `references/` 16 篇按需加载工艺文档 → `scripts/` 20 个工程脚本。数据流：用户素材（完整剧本 / 一句话梗概）→ 工作室项目（`studio.py init`：`studio.json` + `素材/` + `场景板/` + 各集三件）→ 五工位推进（剧本台 → 角色与场景台 → 分镜台〔技法 A 分镜智能体 / 技法 B 宫格直生〕→ 出片台 → 后期台）→ 门禁串联（`studio.py check`：`validate_storyboard` / `check_refs` / `manifest verify` / `check_scene_plates`）→ 成片与发布包装。改稿按层回流，`studio.py status` 用文件时间给出「资产晚于成片」「分镜晚于视频段」提示。本工作区（git 仓库）为开发源；发布面=GitHub；使用面=本机技能实体（静态复制，`scripts/sync_entity.py` 一键同步）。
 
 ## 二、目标
 
@@ -48,4 +48,5 @@
 | 一键验收管道 | `scripts/qa_batch.py` | 接缝量化、同源核对、底账、json、ffmpeg 跳过 |
 | 生成清单 | `scripts/manifest.py` | init/set/verify、同源、版本分布、定稿核对 |
 | 统一裁切 | `scripts/trim_clips.py` | 整拍时长、5.000 秒、帧精确、流复制、干跑 |
+| 分镜拼接成片 | `scripts/concat_clips.py` | 参数一致性、流复制拼接、切点导出、异参数重编码、干跑、apply |
 | 版本生成引擎 | `scripts/gen_script.py` | 单引擎、数据文件、命中数拦截、verify 回放、all 回归 |
