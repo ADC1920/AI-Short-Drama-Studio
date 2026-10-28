@@ -77,7 +77,7 @@ git clone https://github.com/ADC1920/AI-Short-Drama-Studio.git "$env:USERPROFILE
 .
 ├── SKILL.md                 主入口：五工位、铁律、平台约束、排障、索引
 ├── references/              16 篇工艺文档，按场景加载（含 studio-workflow.md / short-video-studio.md）
-├── scripts/                 19 个工程脚本，全部带 selftest
+├── scripts/                 20 个工程脚本，全部带 selftest
 ├── examples/demo-multi-ep/  最小多集样例，同时用于回归测试
 ├── docs/                    工作区导航与技能更新说明
 └── .github/workflows/       CI：脚本自检与样例端到端回归
@@ -105,6 +105,7 @@ git clone https://github.com/ADC1920/AI-Short-Drama-Studio.git "$env:USERPROFILE
 | `lint_prompt.py` | 提示词词层机检：空词、运镜歧义、一镜多运镜、步态物理锁、完成态、负面词过量 | 无 |
 | `gen_scene_sheet.py` | 场景单生成：数据单源渲染 md，可选调 article-format 出 docx | python-docx（出 docx 时） |
 | `trim_clips.py` | 分镜统一裁切到整拍时长，帧精确 | ffmpeg |
+| `concat_clips.py` | 分镜段拼接成片：参数一致性核对、流复制拼接、切点列表导出 | ffmpeg |
 | `gen_script.py` | 脚本或文档的版本生成引擎，带命中数校验与回放 | 无 |
 | `fix_table_pagination.py` | docx 分页修复：表格不跨页、表头重复、防孤行 | python-docx |
 | `style_code_blocks.py` | docx 代码块后处理：底纹、左边框、防跨页拆断 | python-docx |
@@ -115,7 +116,7 @@ git clone https://github.com/ADC1920/AI-Short-Drama-Studio.git "$env:USERPROFILE
 pip install pillow numpy python-docx
 ```
 
-ffmpeg 仅 `check_seams.py`、`qa_batch.py`、`trim_clips.py` 的实拍部分需要，缺失时相关检查会自动跳过。
+ffmpeg 仅 `check_seams.py`、`qa_batch.py`、`trim_clips.py`、`concat_clips.py` 的实拍部分需要，缺失时相关检查会自动跳过。
 
 ## 示例项目
 
@@ -143,6 +144,7 @@ python scripts/fix_table_pagination.py --selftest
 python scripts/qa_batch.py --selftest
 python scripts/manifest.py --selftest
 python scripts/trim_clips.py --selftest
+python scripts/concat_clips.py --selftest
 python scripts/gen_script.py --selftest
 python scripts/check_scene_plates.py --selftest
 python scripts/gen_scene_sheet.py --selftest
