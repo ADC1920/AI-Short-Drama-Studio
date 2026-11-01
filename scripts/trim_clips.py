@@ -21,7 +21,8 @@ from pathlib import Path
 
 def probe_duration(p: Path) -> float:
     r = subprocess.run(["ffprobe", "-v", "error", "-show_entries", "format=duration",
-                        "-of", "csv=p=0", str(p)], capture_output=True, text=True)
+                        "-of", "csv=p=0", str(p)], capture_output=True, text=True,
+                       encoding="utf-8", errors="replace")
     try:
         return float(r.stdout.strip())
     except ValueError:
@@ -36,7 +37,8 @@ def trim_one(src: Path, out: Path, duration: float, fast: bool):
     else:
         cmd = ["ffmpeg", "-y", "-v", "error", "-i", str(src), "-t", f"{duration:.3f}",
                "-c:v", "libx264", "-crf", "17", "-preset", "fast", "-c:a", "copy", str(out)]
-    r = subprocess.run(cmd, capture_output=True, text=True)
+    r = subprocess.run(cmd, capture_output=True, text=True,
+                       encoding="utf-8", errors="replace")
     if r.returncode != 0:
         return False, r.stderr.strip()[-300:]
     return True, ""
@@ -91,7 +93,8 @@ def selftest():
         r = subprocess.run(["ffmpeg", "-y", "-v", "error", "-f", "lavfi",
                             "-i", "testsrc=duration=6:size=180x320:rate=60",
                             "-c:v", "libx264", "-crf", "23", "-preset", "ultrafast", str(src)],
-                           capture_output=True, text=True)
+                           capture_output=True, text=True,
+                       encoding="utf-8", errors="replace")
         assert r.returncode == 0, f"生成测试片失败: {r.stderr[-200:]}"
         d0 = probe_duration(src)
         out = tmp / "out" / "test6s.mp4"

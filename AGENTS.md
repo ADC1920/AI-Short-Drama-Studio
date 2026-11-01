@@ -19,6 +19,7 @@
 - **技能实体同步面**：本工作区=开发源；本机技能实体 `<SKILL_ROOT>/ai-short-drama-studio` 为静态复制（非 git）。发版后同步用 `python scripts/sync_entity.py <实体目录>` 一键完成——自动备份（回滚点落本机备份目录，可用 `--backup-dir` 指定）→ 差异扫描 → 同步 → md5 复核；`--dry-run` 预演。排除项=承载与仓库级资产（AGENTS.md/docs/memory/.github/examples/.git/__pycache__，列表维护在脚本顶部 EXCLUDE 常量），不入实体。已于 2026-10-28 同步至 v2.3.0（v2.2.0 → v2.3.0，技能面 41 件 md5 全等；新增 concat_clips 脚本）。**当前为单根部署**：实体只在 `.agents/skills/ai-short-drama-studio`，`.zcode/skills` 下没有该技能，故 `check_double_root.py` 不适用。历史上曾为双根（硬链同源），若日后恢复双根，注意 sync_entity 对新增文件会在两侧各自复制而断链——同步后跑 `python scripts/check_double_root.py <左根> <右根> --fix` 补齐（只修内容相同非硬链；内容不一致只报告）。
 - **v2.0.0 工作室化重构（2026-10-27）**：骨架由「三路线」改为「五工位流水线」，新增 `references/studio-workflow.md` 与 `scripts/studio.py`（init/status/check/board）；视觉规格留档 `docs/design-specs/studio-board.md`。
 - **v2.1.0 双形态（2026-10-27）**：新增短视频形态（`studio.py init --form short`）、`scripts/short_plan.py` 口播时长预算机检、`references/short-video-studio.md` 短片工艺；通用机制四条（单镜 1.5s 下限 / 否定配正向清单 / 追问四失效防御 / 发布包装属交付）进铁律，两种形态共用。实体已同步至 v2.0.0，v2.1.0 **待同步**。
+- **v2.5.0 工艺词典层（2026-11-01）**：资源包（31 份漫剧提示词资料）深读后补四篇 references——`camera-grammar.md`（运镜三参数：起点景别/终点景别/耗时，模型用值与设计自用值分离，情绪化运镜十式、视角层级、九类特殊场景）、`visual-lexicon.md`（画风三层：线条/上色/色板，十种画风写法、画风词转写对照、光影三件套与六种情绪光、背景六段式）、`character-design.md`（设定卡七段、跨镜五维审查）、`publish-ops.md`（三平台差异、字幕封面参数、情绪调色、发布前六查、发布后三指标与归因顺序）。`lint_prompt.py` 新增运镜三参数缺失告警（selftest 加一项）。**吸收原则**：资源包通篇堆 8K/电影感/超精细，与本项目空词 FAIL 判定正面冲突，故只取其结构与参数、弃其空词；已有更严格规定处（分镜组、镜头连续性、否定三改法、三层工艺分离）只补强不替换。
 - 权威源顺序：注入核心 → shisan-xinuo-workflow SKILL.md → 本文件 → `docs/project-info.md`。
 
 ## 项目承载（已就绪）

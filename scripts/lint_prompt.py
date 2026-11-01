@@ -86,6 +86,19 @@ NEGATIVE_MARKERS = (
     "不染",
 )
 
+# 运镜出现标志：命中即认为这一镜有运镜，需要三参数兜底。
+MOVE_TRIGGERS = ("推镜", "推进", "前推", "拉镜", "拉远", "后拉", "摇镜", "横摇",
+                 "纵摇", "移镜", "横移", "环绕", "升起", "升高", "降下", "跟随",
+                 "跟拍", "变焦", "推进", "摇过", "旋转")
+# 起点景别标志。
+START_LEVELS = ("从全景", "从远景", "从中景", "从近景", "从特写", "从大远景", "从半身", "从全身")
+# 终点景别标志。
+END_LEVELS = ("推至", "至近景", "至特写", "至中景", "至全景", "至远景", "到近景",
+              "到特写", "到中景", "到全景", "停在")
+# 耗时或速度标志。
+PACE_WORDS = ("秒", "匀速", "缓慢", "缓推", "快速", "急推", "由慢到快", "一拍", "两拍",
+              "减速", "末尾", "末段", "全程", "转速", "前慢后快")
+
 LOOK_RE = re.compile(r"^\*\*LOOK\s*(\d{1,2})\b")
 OPEN_RE = re.compile(r"^\*\*镜\s*0\s*[·・]?\s*开场")
 
@@ -174,6 +187,22 @@ def check(prompt: Prompt, walk: bool) -> tuple[list[str], list[str]]:
     if len(hits) >= 4 and "开场" not in prompt.label:
         warns.append(f"{prompt.label}: 一镜命中 {len(hits)} 类运镜（{'/'.join(hits)}），建议收敛到一到两类")
 
+    # 运镜三参数：只写标签模型自己定速度与落点，同一条提示词两次生成结果不同。
+    has_move = any(t in text for t in MOVE_TRIGGERS)
+    if has_move and hits:
+        missing = []
+        if not any(t in text for t in START_LEVELS):
+            missing.append("起点景别")
+        if not any(t in text for t in END_LEVELS):
+            missing.append("终点景别")
+        if not any(t in text for t in PACE_WORDS):
+            missing.append("速度或耗时")
+        if missing:
+            warns.append(
+                f"{prompt.label}: 运镜缺「{'、'.join(missing)}」——补齐后运镜才可复现，"
+                f"见 references/camera-grammar.md 一二节"
+            )
+
     is_walk = walk or any(t in text for t in WALK_TRIGGERS)
     if is_walk and not any(g in text for g in GAIT_WORDS):
         fails.append(
@@ -224,6 +253,11 @@ def selftest() -> int:
             "camera_overload",
             "镜头推镜向前，随后横移，再摇镜，最后升起并环绕。模特站定，画面停稳。",
             "类运镜",
+        ),
+        (
+            "camera_no_params",
+            "镜头向前推进，人物在画面中移动。",
+            "运镜缺",
         ),
         (
             "clean",
