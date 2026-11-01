@@ -1,7 +1,7 @@
 ---
 name: ai-short-drama-studio
-version: 2.3.0
-description: "AI 短剧与短视频工作室（双形态）：短剧做多集叙事（剧本台→角色与场景台→分镜台→出片台→后期台），短视频做单条 1 分钟内（脚本台→素材台→分镜台→出片台→发布台），一项目一目录、产物驱动进度、改稿按层回流。当用户要制作 AI 短剧、漫剧、动态漫、竖屏微短剧，或有一句话剧情/梗概要快速成片，或要做 60 秒内短视频、口播脚本、带货/科普/种草脚本、钩子与开场 3 秒、发布文案与标签，或提到即梦短剧工作室、Seedance、即梦、DreamScript、Anycook、DreamShot、宫格分镜、@素材引用、素材锚点、多集项目、连续性台账、段缝衔接、转场、视频延长、配音/TTS、人脸审核不过、审核敏感词、否定约束失效、分镜提示词、分镜图、关键帧、三层工艺分离、多人戏调度、场景首现、视觉验收、分镜 JSON 校验、参考视频对标、时长预算、完播率时使用；出现人脸漂移、角色重复、多余字幕水印、拼接跳帧、口播超时长等故障要排障时也用。产出工位化流程、分镜蓝图与排障指引。AI short-drama and short-video studio skill (dual form): drama form for multi-episode narrative, short-video form for single clips under 60s. Project directory as single source, artifact-driven progress, layered rework backflow; spoken-word duration budget, pacing tiers, hook taxonomy, publish package, Seedance/Jimeng storyboard prompts, grid storyboard JSON, @reference assets, transitions and editing, dubbing, continuity ledgers, blocking, FACS expressions, action previs, emotional beats, negative-prompt workarounds, troubleshooting, multi-episode adaptation."
+version: 2.4.0
+description: "AI 短剧与短视频工作室（双形态）：短剧做多集叙事（剧本台→角色与场景台→分镜台→出片台→后期台），短视频做单条 1 分钟内（脚本台→素材台→分镜台→出片台→发布台），一项目一目录、产物驱动进度、改稿按层回流。当用户要制作 AI 短剧、漫剧、动态漫、竖屏微短剧，或有一句话剧情/梗概要快速成片，或要做 60 秒内短视频、口播脚本、带货/科普/种草脚本、钩子与开场 3 秒、发布文案与标签，或提到即梦短剧工作室、Seedance、DreamScript、Anycook、DreamShot、宫格分镜、@素材引用、素材锚点、多集项目、连续性台账、段缝衔接、转场、视频延长、配音/TTS、音色克隆、VoiceStudio、人脸审核不过、审核敏感词、否定约束失效、分镜提示词、分镜图、关键帧、三层工艺分离、多人戏调度、场景首现、视觉验收、分镜 JSON 校验、参考视频对标、时长预算、完播率时使用；出现人脸漂移、角色重复、音色不统一、多余字幕水印、拼接跳帧、口播超时长等故障要排障时也用。产出工位化流程、分镜蓝图与排障指引。AI short-drama and short-video studio skill (dual form): multi-episode drama and single-clip short video in one project directory; artifact-driven progress, layered rework backflow, spoken-word duration budget, hook taxonomy, publish package, Seedance storyboard prompts, grid storyboard JSON, @reference assets, camera grammar, transitions, dubbing with cloned voices, continuity ledgers, blocking, FACS expressions, action previs, negative-prompt workarounds, troubleshooting."
 license: MIT
 ---
 
@@ -81,6 +81,7 @@ license: MIT
 | 「前 3 秒钩子怎么写才留人」 | Hook 六分类（`references/short-video-studio.md`） |
 | 「短视频拍完还要准备什么才能发」 | 发布台（封面/文案/标签/评论引导） |
 | 「一镜多长才不会被模型糊成一团」 | 单镜 1.5s 下限（通用机制） |
+| 「配音想用克隆音色/每个角色一个固定声音」 | 声音与配音 → VoiceStudio 自建音色（`references/audio-voice.md` 三、五节 + `scripts/tts_voice.py`） |
 
 ## 工位一：剧本台
 
@@ -255,6 +256,7 @@ license: MIT
 | `scripts/init_project.py` | 多集项目脚手架：一键生成「根 `素材/` + 各集三件目录」结构（`studio.py init` 已覆盖，保留兼容老项目） |
 | `scripts/short_plan.py` | 短视频脚本机检：口播字数是否落在目标时长可听区间、单镜 ≥1.5s、时间轴断档、钩子小节存在且非敷衍、发布包三件是否齐；`--target` 反推口播字数与镜头数 |
 | `scripts/studio.py` | 工作室总控：`init` 建项目配置与五工位目录、`status` 扫盘出五工位进度＋当前焦点工位＋改稿影响提示、`check` 串起分镜/引用/清单/场景板机检、`board` 出单文件 HTML 看板 |
+| `scripts/tts_voice.py` | 配音合成：按 `【角色｜profile_id｜style】` 标注稿调本地 VoiceStudio（`/v1/audio/speech`）逐段出 mp3，读 `studio.json` 的 `voices` 音色表；`--dry-run` 先看解析、`--list-voices` 核对 profile_id |
 | `scripts/archive_old_docx.py` | docx 交付版本管理：旧版自动移入 `_旧版归档/`（保留清单 / `--dry-run` 预览 / 占用容错） |
 | `scripts/sync_entity.py` | 技能实体同步：备份 → 差异扫描 → 同步 → md5 复核一条链（`--dry-run` 预演 / `--prune` 清多余） |
 | `scripts/check_double_root.py` | 技能双根核对与补链（`.zcode`+`.agents` 双根部署）：内容 md5 + 硬链 samefile 逐件核对；只修「内容相同非硬链」（`--fix`），不一致只报告 |
@@ -271,6 +273,7 @@ license: MIT
 
 ## 更新记录
 
+- 2026-10-29 v2.4.0 配音升级为自建音色（接入 VoiceStudio）：此前配音只有 Edge TTS 一条路，音色从 9 个固定中文音色里挑，跨集一致性靠「别挑错」，音色表现力受限于固定池。本次把音色表从「从固定池挑」改为「每角色自建」——①**新增 `scripts/tts_voice.py`**：吃第四节现有的 `【角色｜profile_id｜style】` 标注稿，逐段调本地 VoiceStudio 的 `/v1/audio/speech`（OpenAI 兼容）出 mp3，序号即时间轴顺序；纯 stdlib（urllib）无新依赖；`--dry-run` 先看解析不出音频、`--list-voices` 核对服务上的 profile_id、`--project` 读 `studio.json` 的 `voices` 音色表；缺 profile_id 时明确报错而非静默用默认音色；selftest 覆盖标签解析、音色表回落、显式标签优先、缺配置报错、文件名净化、空行不切段六项。②**`studio.json` 新增 `voices` 字段**（`{角色: {profile_id, style}}`），音色表随项目走、跨集复用。③**`references/audio-voice.md` 三节改写**：音色表分「自建音色（克隆/设计）」与「固定音色池（Edge TTS 降级）」两张，前者记 profile_id 与素材来源；五节拆成 5.1 VoiceStudio 首选路径（含一次性准备三步、合成命令、四条注意事项：profile_id 须人工获取/素材干净度决定质量/别走 MCP base64/声音授权）与 5.2 Edge TTS 降级路径（原命令保留，明确 tts_voice.py 不吃 Edge 音色名）；四节标注格式补第二位的两种合法填法。④二十→二十一脚本口径同步（AGENTS/README/CI/project-info）；触发示例 38→39 类。设计取舍：**不做脚本内克隆**——克隆要看像不像，机器判断不了，只把「给定 profile_id 的批量合成」这件机械且可判定对错的事收进脚本；**不删 Edge TTS**——它是没装 VoiceStudio 和龙套角色时的降级路径，且免费无 GPU 依赖。接入依据：VoiceStudio 暴露 OpenAI 兼容 `POST /v1/audio/speech`（`voice` 填 profile_id），格式 `mp3/wav/flac/opus/aac` 可选，本地回环免鉴权，`response_format` 直接落盘规避 MCP base64 撑爆上下文的问题。
 - 2026-10-02 初版：三路线落地（A 智能体分镜 / B 宫格直生 / C 人脸规避五法），SKILL.md + 3 个 references。
 - 2026-10-02 通用化一轮：正文品牌词与出处字样清零，Seedance 去版本号。
 - 2026-10-02 排障与工程层：新增排障速查、平台硬约束、声音符号、首尾帧接力、首镜钩子、validate_storyboard.py、make_grid.py，description 加故障触发词。

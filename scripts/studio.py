@@ -46,6 +46,7 @@ CONFIG_DEFAULTS = {
     "model": "seedance-2.5",
     "episodes": 1,
     "scene_plate": None,
+    "voices": {},
     "notes": "",
 }
 

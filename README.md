@@ -77,7 +77,7 @@ git clone https://github.com/ADC1920/AI-Short-Drama-Studio.git "$env:USERPROFILE
 .
 ├── SKILL.md                 主入口：五工位、铁律、平台约束、排障、索引
 ├── references/              16 篇工艺文档，按场景加载（含 studio-workflow.md / short-video-studio.md）
-├── scripts/                 20 个工程脚本，全部带 selftest
+├── scripts/                 21 个工程脚本，全部带 selftest
 ├── examples/demo-multi-ep/  最小多集样例，同时用于回归测试
 ├── docs/                    工作区导航与技能更新说明
 └── .github/workflows/       CI：脚本自检与样例端到端回归
@@ -109,6 +109,7 @@ git clone https://github.com/ADC1920/AI-Short-Drama-Studio.git "$env:USERPROFILE
 | `gen_script.py` | 脚本或文档的版本生成引擎，带命中数校验与回放 | 无 |
 | `fix_table_pagination.py` | docx 分页修复：表格不跨页、表头重复、防孤行 | python-docx |
 | `style_code_blocks.py` | docx 代码块后处理：底纹、左边框、防跨页拆断 | python-docx |
+| `tts_voice.py` | 配音合成：按【角色｜profile_id】标注稿调本地 VoiceStudio 逐段出 mp3，读 studio.json 音色表 | 本地 VoiceStudio 服务（可选） |
 
 依赖一次装齐：
 
@@ -152,6 +153,7 @@ python scripts/lint_prompt.py --selftest
 python scripts/style_code_blocks.py --selftest
 python scripts/studio.py --selftest
 python scripts/short_plan.py --selftest
+python scripts/tts_voice.py --selftest
 ```
 
 CI 在每次 push 和 PR 时执行同一组自检，并对样例项目跑端到端回归。
