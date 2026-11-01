@@ -4,11 +4,11 @@
 
 ## 一、架构
 
-技能包三段式：主入口 `SKILL.md`（触发示例 37 类 / 五工位流水线双形态 / 对标参考流程 / 铁律与核心公式 / 平台硬约束 / 成本纪律 / 排障速查 / 项目层多集）→ `references/` 16 篇按需加载工艺文档 → `scripts/` 20 个工程脚本。数据流：用户素材（完整剧本 / 一句话梗概）→ 工作室项目（`studio.py init`：`studio.json` + `素材/` + `场景板/` + 各集三件）→ 五工位推进（剧本台 → 角色与场景台 → 分镜台〔技法 A 分镜智能体 / 技法 B 宫格直生〕→ 出片台 → 后期台）→ 门禁串联（`studio.py check`：`validate_storyboard` / `check_refs` / `manifest verify` / `check_scene_plates`）→ 成片与发布包装。改稿按层回流，`studio.py status` 用文件时间给出「资产晚于成片」「分镜晚于视频段」提示。本工作区（git 仓库）为开发源；发布面=GitHub；使用面=本机技能实体（静态复制，`scripts/sync_entity.py` 一键同步）。
+技能包三段式：主入口 `SKILL.md`（触发示例 50 类 / 五工位流水线双形态 / 对标参考流程 / 铁律与核心公式 / 平台硬约束 / 成本纪律 / 排障速查 / 项目层多集）→ `references/` 20 篇按需加载工艺文档 → `scripts/` 21 个工程脚本。数据流：用户素材（完整剧本 / 一句话梗概）→ 工作室项目（`studio.py init`：`studio.json` + `素材/` + `场景板/` + 各集三件）→ 五工位推进（剧本台 → 角色与场景台 → 分镜台〔技法 A 分镜智能体 / 技法 B 宫格直生〕→ 出片台 → 后期台）→ 门禁串联（`studio.py check`：`validate_storyboard` / `check_refs` / `manifest verify` / `check_scene_plates`）→ 成片与发布包装。改稿按层回流，`studio.py status` 用文件时间给出「资产晚于成片」「分镜晚于视频段」提示。本工作区（git 仓库）为开发源；发布面=GitHub；使用面=本机技能实体（静态复制，`scripts/sync_entity.py` 一键同步）。
 
 ## 二、目标
 
-把一句话剧情或完整剧本变成可执行的 AI 短剧视频（动态漫/漫剧、写实风等形态通用）；本工作区职责=开发、版本化、发布该技能（当前 v2.1.0）。
+把一句话剧情或完整剧本变成可执行的 AI 短剧视频（动态漫/漫剧、写实风等形态通用）；本工作区职责=开发、版本化、发布该技能（当前 v2.5.0）。
 
 ## 三、模块表（关键词锚定列）
 
@@ -25,12 +25,17 @@
 | 素材一致性工艺 | `references/asset-workflow.md` | 人物锚点法、ref红线、候选图选择、重构图、首帧四要素 |
 | 分镜图工艺 | `references/frame-industrial.md` | 三层分离、8段式、4模选档、并发限流、非人形偏置 |
 | 提示词进阶 | `references/prompt-craft.md` | 三作用域、末态法则、多素材绑定、否定失效、实测档案 |
+| 运镜语法 | `references/camera-grammar.md` | 运镜三参数、模型值vs设计值、情绪化运镜十式、视角层级、特殊场景参数、自查四问 |
+| 画风词典 | `references/visual-lexicon.md` | 画风三层、十种画风写法、转写对照、光影三件套、场景风格统一、背景六段式 |
+| 角色设定卡 | `references/character-design.md` | 设定卡七段、跨镜五维审查、三类漂移成因、复用边界 |
+| 发布投放 | `references/publish-ops.md` | 三平台差异、字幕封面参数、情绪调色、发布前六查、发布后三指标、迭代纪律 |
 | 衔接与后期 | `references/transition-editing.md` | 转场做or剪、编辑四件套、延长、集间延长、ffmpeg落地 |
 | 连续性台账 | `references/continuity-log.md` | 连续性账、段缝衔接、Take记录、版本账、证据分级 |
 | 面部表演 | `references/facs-micro-expression.md` | 微表情四区、真假笑、强度三档、情绪配方 |
 | 情绪与钩子 | `references/emotion-beat-curve.md` | 12 节拍曲线、钩子模式库、2 秒结构 |
 | 打戏预演 | `references/action-previs.md` | R1-R3 强度档、11 环动力链、镜头五要素 |
-| 声音与配音 | `references/audio-voice.md` | 四轨设计、角色音色表、Edge TTS、混音检查 |
+| 声音与配音 | `references/audio-voice.md` | 四轨设计、角色音色表、VoiceStudio 自建音色（克隆/设计）、profile_id、Edge TTS 降级、混音检查 |
+| 配音合成 | `scripts/tts_voice.py` | 标注稿解析、profile_id、/v1/audio/speech、studio.json voices、逐段 mp3、dry-run、list-voices |
 | 即梦实测档案 | `references/jimeng-seedance-2.5.md` | Seedance 2.5、素材上限、积分、提示词规则、审核限制 |
 | 场景资产 | `references/scene-plates.md` | 场景板、Location/state/View、锁定句、空场与文字政策、反推、验收 |
 | 场景板机检 | `scripts/check_scene_plates.py` | 字段、ID/state、政策冲突、光线、敏感词、跨文件引用 |

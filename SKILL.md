@@ -1,7 +1,7 @@
 ---
 name: ai-short-drama-studio
-version: 2.3.0
-description: "AI 短剧与短视频工作室（双形态）：短剧做多集叙事（剧本台→角色与场景台→分镜台→出片台→后期台），短视频做单条 1 分钟内（脚本台→素材台→分镜台→出片台→发布台），一项目一目录、产物驱动进度、改稿按层回流。当用户要制作 AI 短剧、漫剧、动态漫、竖屏微短剧，或有一句话剧情/梗概要快速成片，或要做 60 秒内短视频、口播脚本、带货/科普/种草脚本、钩子与开场 3 秒、发布文案与标签，或提到即梦短剧工作室、Seedance、即梦、DreamScript、Anycook、DreamShot、宫格分镜、@素材引用、素材锚点、多集项目、连续性台账、段缝衔接、转场、视频延长、配音/TTS、人脸审核不过、审核敏感词、否定约束失效、分镜提示词、分镜图、关键帧、三层工艺分离、多人戏调度、场景首现、视觉验收、分镜 JSON 校验、参考视频对标、时长预算、完播率时使用；出现人脸漂移、角色重复、多余字幕水印、拼接跳帧、口播超时长等故障要排障时也用。产出工位化流程、分镜蓝图与排障指引。AI short-drama and short-video studio skill (dual form): drama form for multi-episode narrative, short-video form for single clips under 60s. Project directory as single source, artifact-driven progress, layered rework backflow; spoken-word duration budget, pacing tiers, hook taxonomy, publish package, Seedance/Jimeng storyboard prompts, grid storyboard JSON, @reference assets, transitions and editing, dubbing, continuity ledgers, blocking, FACS expressions, action previs, emotional beats, negative-prompt workarounds, troubleshooting, multi-episode adaptation."
+version: 2.5.0
+description: "AI 短剧与短视频工作室（双形态）：短剧做多集叙事（剧本台→角色与场景台→分镜台→出片台→后期台），短视频做单条 1 分钟内（脚本台→素材台→分镜台→出片台→发布台），一项目一目录、产物驱动进度、改稿按层回流。当用户要制作 AI 短剧、漫剧、动态漫、竖屏微短剧，或有一句话剧情/梗概要快速成片，或要做 60 秒内短视频、口播脚本、钩子与开场 3 秒、发布文案与标签，或提到即梦短剧工作室、Seedance、DreamScript、Anycook、DreamShot、宫格分镜、@素材引用、素材锚点、角色设定卡、画风三层、光影三件套、运镜三参数、多集项目、连续性台账、段缝衔接、转场、视频延长、配音/TTS、人脸审核不过、审核敏感词、否定约束失效、分镜提示词、分镜图、关键帧、三层工艺分离、多人戏调度、场景首现、视觉验收、分镜 JSON 校验、参考视频对标、时长预算、字幕封面参数、调色、完播率时使用；出现人脸漂移、角色跨集不像、画风漂移、运镜执行不出、光与场景不符、角色重复、多余字幕水印、拼接跳帧、口播超时长、上线后数据不好等故障要排障时也用。产出工位化流程、分镜蓝图与排障指引。AI short-drama and short-video studio skill (dual form): multi-episode drama and single-clip short video in one project directory; artifact-driven progress, layered rework backflow, spoken-word duration budget, hook taxonomy, publish package, Seedance storyboard prompts, grid storyboard JSON, @reference assets, camera grammar, art-style layers, character sheets, transitions, dubbing, continuity ledgers, blocking, FACS expressions, action previs, publish diagnostics, troubleshooting."
 license: MIT
 ---
 
@@ -81,6 +81,18 @@ license: MIT
 | 「前 3 秒钩子怎么写才留人」 | Hook 六分类（`references/short-video-studio.md`） |
 | 「短视频拍完还要准备什么才能发」 | 发布台（封面/文案/标签/评论引导） |
 | 「一镜多长才不会被模型糊成一团」 | 单镜 1.5s 下限（通用机制） |
+| 「配音想用克隆音色/每个角色一个固定声音」 | 声音与配音 → VoiceStudio 自建音色（`references/audio-voice.md` 三、五节 + `scripts/tts_voice.py`） |
+| 「运镜写了但生成出来乱动/推镜变成变焦」 | 运镜语法与参数（`references/camera-grammar.md`） |
+| 「环绕/推镜转太快没到位，怎么写得准」 | 运镜三参数：起点景别、终点景别、耗时（`references/camera-grammar.md` 一二节） |
+| 「想要有压迫感又不土的光，怎么写」 | 情绪化运镜十式 + 光源三件套（`references/camera-grammar.md` 三节、`references/visual-lexicon.md` 四节） |
+| 「画风每次生成都不一样/韩漫风出成日漫」 | 画风三层写法：线条、上色、色板（`references/visual-lexicon.md` 一二节） |
+| 「国风/赛博朋克这类词怎么翻成能出图的描述」 | 画风词转写对照（`references/visual-lexicon.md` 三节） |
+| 「角色设定卡要写哪些字段」 | 设定卡七段（`references/character-design.md` 二节） |
+| 「角色跨集越做越不像，怎么查是哪一环错的」 | 跨镜一致性五维审查（`references/character-design.md` 三节） |
+| 「成片发出去了，数据不好该改什么」 | 发布后诊断三指标与归因顺序（`references/publish-ops.md` 五六节） |
+| 「同一部剧要发抖音快手视频号，剪几个版本」 | 三平台时长与节奏差异（`references/publish-ops.md` 一节） |
+| 「字幕字号描边、封面文字有没有标准」 | 平台字幕与封面参数（`references/publish-ops.md` 二节） |
+| 「这一集怎么调色」 | 情绪调色起步值（`references/publish-ops.md` 三节） |
 
 ## 工位一：剧本台
 
@@ -97,7 +109,8 @@ license: MIT
 
 把所有视觉资产做齐并锁定命名，这是全剧一致性的唯一来源。
 
-- **角色走锚点法**：先定正面全身锚点，其余视角/表情只参考锚点衍生；ref 数量有红线（见 `references/asset-workflow.md`）。
+- **角色走锚点法**：先定正面全身锚点，其余视角/表情只参考锚点衍生；ref 数量有红线（见 `references/asset-workflow.md`）。锚点出图前先填设定卡七段（基础档案/外貌/标志性元素/三套服装/语言风格/关系网络/出场弧），字段要求与跨镜审查方法见 `references/character-design.md`。
+- **画风先定三层再出第一张图**：线条、上色、色板各写一句，只写「韩漫风」这类名字跨镜必漂（见 `references/visual-lexicon.md`）。
 - **场景走场景板**：`S-*` + Location + state（如 `S-01@day-crowd`），分镜只引用场景 ID 与锁定句，不重描外观（见 `references/scene-plates.md`）。
 - **被审核拦截走技法 C**：墨镜遮挡 / 网格遮挡 / 无五官三视图 / 服装+头部组合 / 风格转绘，五种规避法见 `references/face-workarounds.md`。
 - **文件名即引用名**：`素材/顾寒.png` 对应提示词里的 `@顾寒`，大小写也必须一致。
@@ -111,6 +124,7 @@ license: MIT
 - **技法 A（工程级分镜）**：有完整剧本时，读 `references/agent-prompt.md`，把系统提示词贴进新对话，产出「场景总览 + SEQUENCE 分镜执行表 + 序列自检」。
 - **技法 B（宫格直生）**：只有梗概时，读 `references/grid-storyboard.md` 生成宫格 JSON（9 宫格配 15s 最稳），拼图用 `scripts/make_grid.py`，一张图直出片段。
 - **每镜先出关键帧**：1–4 张候选、选优作该镜首帧；构图问题在静态图上改（成本约视频段 1/20）。8 段式写法见 `references/frame-industrial.md`。
+- **运镜写到可执行**：只写「缓慢推进」模型自己定速度与落点，必写起点景别、终点景别、耗时三参数；焦距毫米数、环绕半径是设计自用值，写进提示词通常变空词（见 `references/camera-grammar.md`）。
 
 **门禁**：`python scripts/validate_storyboard.py <json>` PASS；关键帧定稿；`python scripts/lint_prompt.py` 无空词与运镜歧义。
 
@@ -132,6 +146,7 @@ license: MIT
 - **拼接**：`python scripts/concat_clips.py 第X集/分镜/视频段` 干跑核对参数一致性，`--apply` 拼接成片（同源走流复制零损失；异参数默认拒绝，先统一生成参数重出该段）；`--cuts-out` 导出切点供接缝复核。拼接前先 `trim_clips.py` 裁整拍，否则切点逐段漂移。
 - **接缝量化**：`python scripts/qa_batch.py <成片目录>` 出底账，量化只做粗筛，内容仍以逐镜视觉验收为准。
 - **发布包装**：最佳帧作封面 + 1–3 句分享文案（说清是什么 + 一个具体看点）。
+- **发布后诊断**：上线后只看三个数（完播率、前 3 秒留存、互动率），按「留存曲线掉在哪一秒 → 回看那一秒在做什么」定位，一次只改一个变量；三平台分发要剪不同长度而非同一片换文案（见 `references/publish-ops.md`）。
 
 **门禁**：接缝量化通过；视觉验收真看过（文件有效不等于验收通过）；封面与文案齐。
 
@@ -143,6 +158,8 @@ license: MIT
 - **场景资产（场景板）**：同一场景跨镜复用先建 `S-*` 场景板——Location＋state（如 `S-01@day-crowd`）＋可选 View；场景板管地理、固定锚点、光线、空场与文字政策，分镜只引用场景 ID 与锁定句，不重描外观。同批镜头混用两个 state 即混源，接缝会跳；换代先改场景单再整批换图。写法、反推与验收见 `references/scene-plates.md`。
 - **提示词三种写法**：①清单式（默认，单镜头精准控制）：`@角色名 @场景名，[动作/状态]，[景别代码]，[摄像机运动]，[光线]，[色调]，[风格标签]，[质量增强词]`；②时间轴式（多镜一条/宫格直生/长镜头）：`【风格】【时长】【画幅】` + `0-X秒：[镜头]+[画面]+[动作]` 分段 + `【声音】` + `【参考】@图片1 作为首帧`；③分镜图 8 段式（出每镜关键帧时用）：CHARACTER/BACKGROUND/ACTION/SCENE/CAMERA/LIGHT/TEXT/STYLE，写法与完整示例见 `references/frame-industrial.md`。
 - **景别代码**：ECU 极端特写 / CU 特写 / MCU 近景 / MS 中景 / LS 全景 / ELS 大远景。画面内运动（人物动作）与摄影机运动分开描述，不混写。
+- **运镜三参数**：每个运镜必写起点景别、终点景别、耗时。只写「缓慢推进」「环绕运镜」等于把速度与落点交给模型，同一条提示词两次生成结果不同。焦距毫米数、环绕半径与角速度是设计自查值（用来验证 4 秒转 360 度这类不可能调度），写进视频提示词通常是空词——把焦距的视觉后果写成可执行描述（「背景被压近、与人物几乎贴合」）。情绪化运镜十式与视角层级见 `references/camera-grammar.md`。
+- **画风三层**：线条（粗细/闭合/描边）、上色（平涂厚涂/阴影软硬/高光形态）、色板（主色/辅助色/禁用色）三层各写一句，只写「韩漫风」「国风」这类名字跨镜必漂。画风与质量词冲突会互相稀释（写实画风配赛璐璐平涂），质量词按画风二选一。转写对照与光影三件套（光源/方向/性质）见 `references/visual-lexicon.md`。
 - **黄金节奏**：每 25–30 秒一个 ⚡PEAK 情绪峰值；单序列 ≤6 镜；禁止连续同景别超过 2 镜；首镜 2 秒内出现视觉钩子；每镜必标转场代码 + 一句执行说明。台词时长折算：中文语速约 4–5 字/秒，镜头时长 ≥ 台词字数 ÷ 5，超了就拆镜或精简台词。完整词库（运镜/光线/质量词/24 种转场及情绪选用表）在 `references/agent-prompt.md`。本条管单片段内的镜头节奏；整集/多集的长叙事节奏设计（红果必爆 7 招 / 180 秒时间轴 / 24 集规划）用 `onlyshot-drama` 技能。
 - **双框写法**：动态视频提示词 → 平台「视频生成」框；画面提示词 → 「图像生成」框。除 @引用名称与景别代码外用中文。
 - **声音符号**：官方语法（ ）音乐、< >音效、{ }台词、【 】字幕——分镜表「声音设计」栏的内容必须按符号并入动态视频提示词末尾，例：（沉重雨声）<刀风呼啸>{台词}。
@@ -228,6 +245,10 @@ license: MIT
 | 多段生成的段间衔接生硬、人物消失又出现 | 段缝连续性：模型每段零记忆，段缝不设计必跳——给每段【接续状态】写具体末帧画面，并按「段缝衔接三方案」选衔接方式（末态双保险 / 换机位硬切 / 空镜过渡，见 `references/continuity-log.md`） |
 | 想改已有视频局部/加长 | 编辑与延长有专门写法（唯一母版/范围写两遍/末态衔接），见 `references/transition-editing.md`；「禁止硬切」只在延长续写场景开 |
 | 成片声音不对（配音/音乐/音量） | 四轨设计与音色表见 `references/audio-voice.md`；台词清晰度要求高走后期 TTS，氛围音用模型原生 |
+| 运镜执行不出来/推镜变变焦/环绕转太快 | 补齐运镜三参数（起点景别、终点景别、耗时）；推与变焦按机位是否移动区分（见 `references/camera-grammar.md`、`prompt-craft.md` 8.3） |
+| 画风跨镜漂移（韩漫出成日漫、某镜突变 3D） | 画风三层（线条/上色/色板）逐字复用到每镜；质量词与画风冲突会互相稀释（见 `references/visual-lexicon.md`） |
+| 室内无窗却有夕阳斜射/光不与场景物理相符 | 光源三件套缺项：补光源是什么、方向、软硬与色温（见 `references/visual-lexicon.md` 四节） |
+| 角色跨集越做越不像 | 按五维（面部/发型/服饰/体型/画风）逐镜审查，停在第一个不合格处；画风维度最易漏查（见 `references/character-design.md` 三节） |
 
 ## 参考文件与脚本索引
 
@@ -249,12 +270,17 @@ license: MIT
 | `references/facs-micro-expression.md` | 写实形态表情写不准、角色表情反复崩时；微表情四区写法、真假笑、强度三档、常用情绪配方 |
 | `references/emotion-beat-curve.md` | 分镜前给剧本做情绪体检、规划开场钩子时；12 节拍曲线、钩子模式库、2 秒结构模板 |
 | `references/action-previs.md` | 写打戏/动作段时；强度三档（R1-R3）、15 秒结构、11 环动力链、镜头五要素、防守三态 |
+| `references/camera-grammar.md` | 运镜写不准时；运镜三参数、模型用值与设计自用值分离、情绪化运镜十式、视角层级、九类特殊场景参数、自查四问 |
+| `references/visual-lexicon.md` | 定画风或写场景光线时；画风三层（线条/上色/色板）、十种主流画风写法、画风词转写对照、光影三件套与六种情绪光、场景风格统一四条、背景六段式 |
+| `references/character-design.md` | 立角色或查一致性时；设定卡七段（档案/外貌/标志元素/三套服装/语言风格/关系网/出场弧）、跨镜五维审查、三类漂移成因、复用边界 |
+| `references/publish-ops.md` | 成片上线前后；三平台差异、字幕与封面参数、情绪调色起步值、发布前六查、发布后三指标与归因顺序、迭代纪律 |
 | `scripts/validate_storyboard.py` | 宫格分镜 JSON 产出后机检（数量/词数/字符上限/必含排除词/禁用句式/编号重复/否定词根·并列主体·抽象形态告警）；门日志 `--stats` 汇总「哪道检查最常响」 |
 | `scripts/make_grid.py` | 本地拼宫格（4/6/9/25：`--cols 2/3/5`），替代在线拼图工具 |
 | `scripts/check_refs.py` | 素材与引用核对：@引用名 vs `素材/` 文件名——断链引用（Error）/ 待补标注（Warning）/ 闲置素材（Warning）；`--bindings` 多素材绑定自检 |
 | `scripts/init_project.py` | 多集项目脚手架：一键生成「根 `素材/` + 各集三件目录」结构（`studio.py init` 已覆盖，保留兼容老项目） |
 | `scripts/short_plan.py` | 短视频脚本机检：口播字数是否落在目标时长可听区间、单镜 ≥1.5s、时间轴断档、钩子小节存在且非敷衍、发布包三件是否齐；`--target` 反推口播字数与镜头数 |
 | `scripts/studio.py` | 工作室总控：`init` 建项目配置与五工位目录、`status` 扫盘出五工位进度＋当前焦点工位＋改稿影响提示、`check` 串起分镜/引用/清单/场景板机检、`board` 出单文件 HTML 看板 |
+| `scripts/tts_voice.py` | 配音合成：按 `【角色｜profile_id｜style】` 标注稿调本地 VoiceStudio（`/v1/audio/speech`）逐段出 mp3，读 `studio.json` 的 `voices` 音色表；`--dry-run` 先看解析、`--list-voices` 核对 profile_id |
 | `scripts/archive_old_docx.py` | docx 交付版本管理：旧版自动移入 `_旧版归档/`（保留清单 / `--dry-run` 预览 / 占用容错） |
 | `scripts/sync_entity.py` | 技能实体同步：备份 → 差异扫描 → 同步 → md5 复核一条链（`--dry-run` 预演 / `--prune` 清多余） |
 | `scripts/check_double_root.py` | 技能双根核对与补链（`.zcode`+`.agents` 双根部署）：内容 md5 + 硬链 samefile 逐件核对；只修「内容相同非硬链」（`--fix`），不一致只报告 |
@@ -271,6 +297,8 @@ license: MIT
 
 ## 更新记录
 
+- 2026-11-01 v2.5.0 工艺词典层与运镜机检（资源包深读吸收）：深读第三方「AI漫剧创作提示词资源包」31 份资料（53 页教程 PDF / 55 页提示词库 doc / 分镜运镜合集 / 人物场景风格手册 / 通用创作指令），按「取其结构与参数、弃其空词」原则补四篇 references——①**新增 `references/camera-grammar.md`**：运镜三参数（起点景别/终点景别/耗时，缺一项模型就在猜速度与落点）、模型用值与设计自用值分离（焦距毫米数、环绕半径用于自查调度是否成立，写进提示词通常是空词，把焦距的视觉后果写成可执行描述）、情绪化运镜十式（每式带可执行写法与常见误用）、视角层级八种（机位高度与距离决定强弱，与景别独立）、九类特殊场景参数（雨景/舞蹈/美食/夜景/跑步/婚礼/风光/微距/宠物）、自查四问；②**新增 `references/visual-lexicon.md`**：画风三层（线条/上色/色板，只写「韩漫风」这类名字跨镜必漂）、十种主流画风的三层写法与使用边界、画风词转写对照表（把「国风唯美」翻成可见特征）、光影三件套（光源/方向/性质，缺一项模型自编光与场景物理不符）与六种情绪光组合、场景风格统一四条、背景提示词六段式；③**新增 `references/character-design.md`**：设定卡七段（基础档案/外貌/标志性元素/三套服装/语言风格/关系网络/出场弧，判定线=交给没看过剧本的人能画出同一个人）、跨镜一致性五维审查（面部/发型/服饰/体型/画风，停在第一个不合格处）、三类高频漂移成因与对策、复用到设定卡为止素材不跨项目；④**新增 `references/publish-ops.md`**：三平台差异（抖音 60-90s 快手 90-120s 视频号 120-180s，三平台分发要剪不同版本而非同一片换文案）、字幕与封面可执行参数、情绪调色起步值（含「同场景内必须一致否则接缝跳色被 check_seams 命中」）、发布前六查、发布后三指标（完播率/前 3 秒留存/互动率，播放量是结果不是诊断项）、归因顺序（先看留存曲线掉在哪一秒再回看那一秒在做什么）、迭代纪律（一次只改一个变量）；⑤**`scripts/lint_prompt.py` 新增运镜三参数缺失检查**（有运镜但缺起点景别/终点景别/速度耗时即告警，selftest 加 camera_no_params 一项）；⑥`references/agent-prompt.md` 词库速查补运镜三参数铁律、序列自检补运镜参数两项；⑦SKILL.md 触发示例 39→50 类、铁律区补「运镜三参数」与「画风三层」两条、排障表补 4 行、description 改写补新触发词（978 字符，1024 限内）；⑧顺手修 `concat_clips.py` / `trim_clips.py` 的 subprocess 编码缺陷——`text=True` 用系统本地编码（中文 Windows 为 GBK）解码 ffprobe/ffmpeg 的 UTF-8 输出，遇非 GBK 字节即 UnicodeDecodeError 且 stdout 变 None，导致 `concat_clips.py --selftest` 在中文 Windows 上必挂；统一补 `encoding="utf-8", errors="replace"`（check_seams/studio 原本已写对）；⑨二十篇 references、二十一脚本口径同步（README/AGENTS/project-info）。
+  吸收取舍：资源包通篇以「8K 超高清 / 电影级光影 / 超精细 / 完美细节」堆量，与本项目「空词即 FAIL」判定正面冲突，一律不入；其分镜组、镜头连续性、否定三改法、三层工艺分离的做法弱于本项目现行规定，只补强不替换；真正吸收的是它更细的**参数颗粒度**（运镜速度与落点、画风三层拆分、光影物理来源）与**投放运营层**（三平台差异、字幕封面参数、调色数值、数据诊断），后者是本项目此前止于「交付成片」的空白。
 - 2026-10-02 初版：三路线落地（A 智能体分镜 / B 宫格直生 / C 人脸规避五法），SKILL.md + 3 个 references。
 - 2026-10-02 通用化一轮：正文品牌词与出处字样清零，Seedance 去版本号。
 - 2026-10-02 排障与工程层：新增排障速查、平台硬约束、声音符号、首尾帧接力、首镜钩子、validate_storyboard.py、make_grid.py，description 加故障触发词。
@@ -301,4 +329,5 @@ license: MIT
 - 2026-10-27 v2.2.0 改名：技能标识 `ai-short-play-video-creation` → `ai-short-drama-studio`（GitHub 仓库与本地工作区目录 → `AI-Short-Drama-Studio`）。三处命名按各自规则处理：技能 `name` 字段受加载器规范约束（官方要求 lowercase kebab-case 且必须与技能实体目录同名），故用 `ai-short-drama-studio`；本地工作区目录与仓库名不受该约束，用 `AI-Short-Drama-Studio`。同步更新的引用面：SKILL.md name、README badge 与 clone 地址、AGENTS.md 标题与实体路径、docs/project-info.md 标题、五个脚本文档字符串；本机技能实体目录与触发登记表另随实体迁移。历史更新记录里对旧名的陈述保持原样不改（那是当时的事实）。
 - 2026-10-27 v2.1.0 双形态（短剧 + 短视频）与通用机制补强（用户选 A+B）：①**新增短视频形态**——`studio.py init --form short --target N` 建单条项目（脚本.md / 分镜/ / 成片/ / 发布/），工位名随形态切换（脚本台/素材台/分镜台/出片台/**发布台**），`status/check/board` 全部支持两种形态；②**新增 `scripts/short_plan.py`**——口播字数按目标时长反推（中文 4.0-4.6 字/秒）、三档节奏镜头数、单镜 ≥1.5s、时间轴断档、钩子小节存在且非敷衍、发布包三件齐，selftest 八项；③**新增 `references/short-video-studio.md`**——时长预算表与「不要抄英文旁白 1.5-2 字/秒」的跨语言警告、三档节奏、Hook 六分类与四不要、追问四种失效防御、发布包装四件、脚本文件固定小节、与短剧形态对照；④**通用机制四条进铁律**（两种形态共用）——单镜 1.5s 下限、否定约束配正向清单（与三改法互补）、需求收集防四种走样、发布包装是交付的一部分；⑤短视频发布台门禁=成片+发布包双齐（只有成片不算完成）；⑥触发示例 32→37 类；⑦调研来源 `docs/ecosystem-survey-2026-10-short-video.md`（本地留档）。做法来源：video-spec-builder 追问失效防御与节奏表、hook-lab Hook 六分类、whiteboard-book-video 口播字数实测、short-video-script-skill 发布契约、seedance2.0-prompt-skill 单镜下限与特效双清单（均按本技能口径重写，未搬运原文）。
 - 2026-10-27 v2.0.0 工作室化重构（对标即梦 AI 短剧工作室 2026-10-26 上线形态）：①**骨架从「三路线并列」改为「五工位流水线」**——剧本台 / 角色与场景台 / 分镜台 / 出片台 / 后期台，工位按目录产物判进度、按层回流改稿；原路线 A/B 降为分镜台两种技法，路线 C 降为角色与场景台的审核规避技法。②新增 `references/studio-workflow.md`——五工位定义与门禁、数据契约（`studio.json` + 项目目录）、改稿回流表（改哪层、必须重做哪层、可保留什么）、单集推进命令序列。③新增 `scripts/studio.py`——`init` 建配置与五工位目录（对齐 `init_project.py` 结构，老项目补 `studio.json` 即纳入）、`status` 扫盘出进度／当前焦点工位／「资产晚于成片」「分镜晚于视频段」两类改稿提示（`--json` 机读）、`check` 串起 `validate_storyboard` / `check_refs` / `manifest verify` / `check_scene_plates` 四个门禁；selftest 覆盖空项目→有剧本→有素材分镜→门禁全绿→时间戳回流提示五段。④`SKILL.md` 触发示例 30→32 类（补「项目做到哪一步」「改了剧本哪些镜头要重出」），description 中英双语改写为工作室口径并补 DreamScript / Anycook / DreamShot 等触发词。作者决策：不引入 Web 前端或平台 API 依赖，工作室形态以「项目目录 + 总控脚本 + 工位纪律」在技能层同构实现，避免把可移植技能绑死在某平台页面结构上。
+- 2026-10-29 v2.4.0 配音升级为自建音色（接入 VoiceStudio）：此前配音只有 Edge TTS 一条路，音色从 9 个固定中文音色里挑，跨集一致性靠「别挑错」，音色表现力受限于固定池。本次把音色表从「从固定池挑」改为「每角色自建」——①**新增 `scripts/tts_voice.py`**：吃第四节现有的 `【角色｜profile_id｜style】` 标注稿，逐段调本地 VoiceStudio 的 `/v1/audio/speech`（OpenAI 兼容）出 mp3，序号即时间轴顺序；纯 stdlib（urllib）无新依赖；`--dry-run` 先看解析不出音频、`--list-voices` 核对服务上的 profile_id、`--project` 读 `studio.json` 的 `voices` 音色表；缺 profile_id 时明确报错而非静默用默认音色；selftest 覆盖标签解析、音色表回落、显式标签优先、缺配置报错、文件名净化、空行不切段六项。②**`studio.json` 新增 `voices` 字段**（`{角色: {profile_id, style}}`），音色表随项目走、跨集复用。③**`references/audio-voice.md` 三节改写**：音色表分「自建音色（克隆/设计）」与「固定音色池（Edge TTS 降级）」两张，前者记 profile_id 与素材来源；五节拆成 5.1 VoiceStudio 首选路径（含一次性准备三步、合成命令、四条注意事项：profile_id 须人工获取/素材干净度决定质量/别走 MCP base64/声音授权）与 5.2 Edge TTS 降级路径（原命令保留，明确 tts_voice.py 不吃 Edge 音色名）；四节标注格式补第二位的两种合法填法。④二十→二十一脚本口径同步（AGENTS/README/CI/project-info）；触发示例 38→39 类。设计取舍：**不做脚本内克隆**——克隆要看像不像，机器判断不了，只把「给定 profile_id 的批量合成」这件机械且可判定对错的事收进脚本；**不删 Edge TTS**——它是没装 VoiceStudio 和龙套角色时的降级路径，且免费无 GPU 依赖。接入依据：VoiceStudio 暴露 OpenAI 兼容 `POST /v1/audio/speech`（`voice` 填 profile_id），格式 `mp3/wav/flac/opus/aac` 可选，本地回环免鉴权，`response_format` 直接落盘规避 MCP base64 撑爆上下文的问题。
 - 2026-10-28 v2.3.0 分镜拼接脚本（后期台缺口补齐）：此前 `trim_clips.py` 裁整拍之后，「段→集」只剩文档里的手敲 ffmpeg concat 命令，是后期台唯一的命令级断点。新增 `scripts/concat_clips.py` 接管三件事——①参数一致性核对（编码/分辨率/帧率/像素格式，可选音轨）：混参数直接 `-c copy` 拼接会失败或花屏，是手工拼接最常见的翻车点，不一致默认拒绝并提示「先统一生成参数重出该段」；②顺序拼接（同源走流复制，零损失秒出）；③导出累积切点列表，直接喂 `check_seams.py --video --cuts` 与 `qa_batch.py` 模式 B，把「拼完再猜切点在哪」变成可复算数据。配套细节：段名自然排序（段2 在段10 前）、时长不等时提示切点会逐段漂移、异参数可 `--reencode-mismatch` 显式重编码到基准（有损，需明示同意）、音轨默认丢弃（成片声音走后期配音轨）、输出路径按工位结构自动推断（`第X集/分镜/视频段` → `第X集/成片/第X集_成片.mp4`）、默认干跑 `--apply` 执行、带三项 selftest（自然排序+切点导出、异参数拒绝、重编码统一到基准）。二十脚本口径同步（AGENTS/README/CI/project-info）；触发示例 37→38 类；工位五补拼接实操命令。设计取舍：不做「一键全自动后期」——配音/混音/字幕各有独立参数与人工判断（loudnorm 单遍可偏 3.7dB 需跑两遍、BGM ducking 要看台词段），串联成黑盒会掩盖这些需要人看的点；只把「机械且可判定对错」的拼接收进脚本。

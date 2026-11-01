@@ -13,6 +13,8 @@
   .git / AGENTS.md / docs / memory / .github / examples / __pycache__
   .v2c（video2code 插件写入的运行时指针，含本机绝对路径）
   out / .studio（本地生成的看板与演示产物）
+  .tmp（一次性中间产物）
+  .gitignore（只对 git 仓库有意义，实体不是仓库）
 （新增这类内容时把顶层名加进脚本顶部 EXCLUDE 常量。）
 
 用法:
@@ -30,7 +32,7 @@ from datetime import datetime
 from pathlib import Path
 
 EXCLUDE = {".git", "AGENTS.md", "docs", "memory", ".github", "examples", "__pycache__",
-           ".v2c", "out", ".studio"}
+           ".v2c", "out", ".studio", ".tmp", ".gitignore"}
 MAX_LIST = 20  # 差异清单每类最多打印条数
 
 

@@ -42,7 +42,8 @@ def parse_rate(s):
 
 def probe(p: Path):
     r = subprocess.run(["ffprobe", "-v", "error", "-show_streams", "-show_format",
-                        "-of", "json", str(p)], capture_output=True, text=True)
+                        "-of", "json", str(p)], capture_output=True, text=True,
+                       encoding="utf-8", errors="replace")
     if r.returncode != 0:
         return None
     try:
@@ -95,7 +96,8 @@ def reencode(src: Path, out: Path, base, keep_audio: bool):
     else:
         cmd += ["-an"]
     cmd.append(str(out))
-    r = subprocess.run(cmd, capture_output=True, text=True)
+    r = subprocess.run(cmd, capture_output=True, text=True,
+                       encoding="utf-8", errors="replace")
     return (r.returncode == 0), r.stderr.strip()[-300:]
 
 
@@ -113,7 +115,8 @@ def concat(files, out: Path, keep_audio: bool):
         if not keep_audio:
             cmd.append("-an")
         cmd.append(str(out))
-        r = subprocess.run(cmd, capture_output=True, text=True)
+        r = subprocess.run(cmd, capture_output=True, text=True,
+                       encoding="utf-8", errors="replace")
         return (r.returncode == 0), r.stderr.strip()[-400:]
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
