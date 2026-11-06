@@ -1,6 +1,6 @@
 ---
 name: ai-short-drama-studio
-version: 2.5.0
+version: 2.6.0
 description: "AI 短剧与短视频工作室（双形态）：短剧做多集叙事（剧本台→角色与场景台→分镜台→出片台→后期台），短视频做单条 1 分钟内（脚本台→素材台→分镜台→出片台→发布台），一项目一目录、产物驱动进度、改稿按层回流。当用户要制作 AI 短剧、漫剧、动态漫、竖屏微短剧，或有一句话剧情/梗概要快速成片，或要做 60 秒内短视频、口播脚本、钩子与开场 3 秒、发布文案与标签，或提到即梦短剧工作室、Seedance、DreamScript、Anycook、DreamShot、宫格分镜、@素材引用、素材锚点、角色设定卡、画风三层、光影三件套、运镜三参数、多集项目、连续性台账、段缝衔接、转场、视频延长、配音/TTS、人脸审核不过、审核敏感词、否定约束失效、分镜提示词、分镜图、关键帧、三层工艺分离、多人戏调度、场景首现、视觉验收、分镜 JSON 校验、参考视频对标、时长预算、字幕封面参数、调色、完播率时使用；出现人脸漂移、角色跨集不像、画风漂移、运镜执行不出、光与场景不符、角色重复、多余字幕水印、拼接跳帧、口播超时长、上线后数据不好等故障要排障时也用。产出工位化流程、分镜蓝图与排障指引。AI short-drama and short-video studio skill (dual form): multi-episode drama and single-clip short video in one project directory; artifact-driven progress, layered rework backflow, spoken-word duration budget, hook taxonomy, publish package, Seedance storyboard prompts, grid storyboard JSON, @reference assets, camera grammar, art-style layers, character sheets, transitions, dubbing, continuity ledgers, blocking, FACS expressions, action previs, publish diagnostics, troubleshooting."
 license: MIT
 ---
@@ -252,6 +252,8 @@ license: MIT
 
 ## 参考文件与脚本索引
 
+> **DSH 安装**：`python scripts/dsh_link.py install` 把本技能挂到 DSH 项目技能根 `<项目根>/.dsh/skills/ai-short-drama-studio`（rank 100，实时生效）；用户根用 `--root user`（`~/.dsh/skills`，rank 400）。DSH 技能根按 rank 100/200/400/500 扫描、发现深度一层，详见 README「DeepSeek Harness（DSH）」。
+
 | 文件 | 何时读 |
 |---|---|
 | `references/studio-workflow.md` | 开工时；需要五工位定义、数据契约、改稿回流表、通用机制、单集推进命令序列时 |
@@ -283,7 +285,8 @@ license: MIT
 | `scripts/tts_voice.py` | 配音合成：按 `【角色｜profile_id｜style】` 标注稿调本地 VoiceStudio（`/v1/audio/speech`）逐段出 mp3，读 `studio.json` 的 `voices` 音色表；`--dry-run` 先看解析、`--list-voices` 核对 profile_id |
 | `scripts/archive_old_docx.py` | docx 交付版本管理：旧版自动移入 `_旧版归档/`（保留清单 / `--dry-run` 预览 / 占用容错） |
 | `scripts/sync_entity.py` | 技能实体同步：备份 → 差异扫描 → 同步 → md5 复核一条链（`--dry-run` 预演 / `--prune` 清多余） |
-| `scripts/check_double_root.py` | 技能双根核对与补链（`.zcode`+`.agents` 双根部署）：内容 md5 + 硬链 samefile 逐件核对；只修「内容相同非硬链」（`--fix`），不一致只报告 |
+| `scripts/check_double_root.py` | 技能双根核对与补链（DSH 双根 `.dsh`+`.agents`，zcode 旧根兜底）：内容 md5 + 硬链 samefile 逐件核对；只修「内容相同非硬链」（`--fix`），不一致只报告 |
+| `scripts/dsh_link.py` | DSH 技能根安装：项目 `.dsh/skills`（rank 100，实时加载本工作区）或用户 `~/.dsh/skills`（rank 400）建目录联接；`status` / `uninstall`；selftest 覆盖幂等、拒覆盖真实目录、dry-run、卸载不伤源 |
 | `scripts/check_seams.py` | 成片接缝质量量化检测：对相邻分镜「上一段尾帧 vs 下一段首帧」计算 SSIM／亮度差／色相差／饱和差／运动持续性五维指标＋综合偏差排序（模式 A：分镜目录两两成缝；模式 B：拼接成片＋切点列表）；阈值经人工判定样本校准，用于定位与复核视觉上「不顺」的缝 |
 | `scripts/qa_batch.py` | 一键验收管道：分镜目录 → 接缝量化（复用 check_seams）＋清单同源核对 → 底账 Markdown；混源与超阈一次列清（`--json` 供机读） |
 | `scripts/manifest.py` | 分镜生成清单：记录每段视频的提示词版本/参考图/场景 state/定稿状态；`verify` 核对「相邻两段是否同源」（混源是接缝跳跃的常见结构性来源） |
@@ -297,6 +300,7 @@ license: MIT
 
 ## 更新记录
 
+- 2026-11-06 v2.6.0 DSH（DeepSeek Harness）适配（工作区由 zcode 复制而来）：①**新增 `scripts/dsh_link.py`**——把本仓库挂进 DSH 技能发现根：项目根 `.dsh/skills/ai-short-drama-studio`（rank 100，实时加载工作区，改稿即生效）或用户根 `~/.dsh/skills`（rank 400）；Windows 用目录联接（`mklink /J`，无需管理员）、POSIX 用 symlink；`status` / `uninstall` 同脚本，只增删联接、不动源文件，不写 zcode 共用的 `~/.agents/skills`；selftest 覆盖项目根发现、幂等、拒覆盖真实目录、dry-run 无副作用、卸载不伤源。②**脚本按 DSH 根适配**：`check_double_root.py` 默认双根改为项目 `.dsh`↔`.agents`、用户 `.dsh`↔`.agents`（zcode 旧根仅兜底），并跳过 `.dsh` 防目录联接递归；`gen_scene_sheet.py` 找 article-format 的 `md2docx.py` 时优先 `~/.dsh/skills`；`sync_entity.py` 排除 `.dsh`、备份默认改 `~/.dsh/skill-backups`。③**残留清理**：删 zcode 插件指针 `.v2c/`、过期 `docs/rename-local-dir.md`；`.gitignore` 以 `.dsh/` 替换 `.v2c/`。④**口径同步**：AGENTS/README/project-info/CI 改为二十二脚本；README 安装节补 DSH 项目根/用户根两种装法。**zcode 隔离**：`~/.agents/skills/ai-short-drama-studio`（zcode 共用静态副本）未写入，`~/.zcode` 零改动；工作区与实体无硬链（逐件 inode/link count 实测）。
 - 2026-11-01 v2.5.0 工艺词典层与运镜机检（资源包深读吸收）：深读第三方「AI漫剧创作提示词资源包」31 份资料（53 页教程 PDF / 55 页提示词库 doc / 分镜运镜合集 / 人物场景风格手册 / 通用创作指令），按「取其结构与参数、弃其空词」原则补四篇 references——①**新增 `references/camera-grammar.md`**：运镜三参数（起点景别/终点景别/耗时，缺一项模型就在猜速度与落点）、模型用值与设计自用值分离（焦距毫米数、环绕半径用于自查调度是否成立，写进提示词通常是空词，把焦距的视觉后果写成可执行描述）、情绪化运镜十式（每式带可执行写法与常见误用）、视角层级八种（机位高度与距离决定强弱，与景别独立）、九类特殊场景参数（雨景/舞蹈/美食/夜景/跑步/婚礼/风光/微距/宠物）、自查四问；②**新增 `references/visual-lexicon.md`**：画风三层（线条/上色/色板，只写「韩漫风」这类名字跨镜必漂）、十种主流画风的三层写法与使用边界、画风词转写对照表（把「国风唯美」翻成可见特征）、光影三件套（光源/方向/性质，缺一项模型自编光与场景物理不符）与六种情绪光组合、场景风格统一四条、背景提示词六段式；③**新增 `references/character-design.md`**：设定卡七段（基础档案/外貌/标志性元素/三套服装/语言风格/关系网络/出场弧，判定线=交给没看过剧本的人能画出同一个人）、跨镜一致性五维审查（面部/发型/服饰/体型/画风，停在第一个不合格处）、三类高频漂移成因与对策、复用到设定卡为止素材不跨项目；④**新增 `references/publish-ops.md`**：三平台差异（抖音 60-90s 快手 90-120s 视频号 120-180s，三平台分发要剪不同版本而非同一片换文案）、字幕与封面可执行参数、情绪调色起步值（含「同场景内必须一致否则接缝跳色被 check_seams 命中」）、发布前六查、发布后三指标（完播率/前 3 秒留存/互动率，播放量是结果不是诊断项）、归因顺序（先看留存曲线掉在哪一秒再回看那一秒在做什么）、迭代纪律（一次只改一个变量）；⑤**`scripts/lint_prompt.py` 新增运镜三参数缺失检查**（有运镜但缺起点景别/终点景别/速度耗时即告警，selftest 加 camera_no_params 一项）；⑥`references/agent-prompt.md` 词库速查补运镜三参数铁律、序列自检补运镜参数两项；⑦SKILL.md 触发示例 39→50 类、铁律区补「运镜三参数」与「画风三层」两条、排障表补 4 行、description 改写补新触发词（978 字符，1024 限内）；⑧顺手修 `concat_clips.py` / `trim_clips.py` 的 subprocess 编码缺陷——`text=True` 用系统本地编码（中文 Windows 为 GBK）解码 ffprobe/ffmpeg 的 UTF-8 输出，遇非 GBK 字节即 UnicodeDecodeError 且 stdout 变 None，导致 `concat_clips.py --selftest` 在中文 Windows 上必挂；统一补 `encoding="utf-8", errors="replace"`（check_seams/studio 原本已写对）；⑨二十篇 references、二十一脚本口径同步（README/AGENTS/project-info）。
   吸收取舍：资源包通篇以「8K 超高清 / 电影级光影 / 超精细 / 完美细节」堆量，与本项目「空词即 FAIL」判定正面冲突，一律不入；其分镜组、镜头连续性、否定三改法、三层工艺分离的做法弱于本项目现行规定，只补强不替换；真正吸收的是它更细的**参数颗粒度**（运镜速度与落点、画风三层拆分、光影物理来源）与**投放运营层**（三平台差异、字幕封面参数、调色数值、数据诊断），后者是本项目此前止于「交付成片」的空白。
 - 2026-10-02 初版：三路线落地（A 智能体分镜 / B 宫格直生 / C 人脸规避五法），SKILL.md + 3 个 references。

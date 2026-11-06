@@ -2,15 +2,19 @@
 # -*- coding: utf-8 -*-
 """技能双根核对：内容一致性 + 硬链完整性核对与修复。
 
-适用场景：同一技能以「硬链同源」部署在两个技能根（如 `.zcode` 与 `.agents`）。
+适用场景：同一技能以「硬链同源」部署在两个技能根。DeepSeek Harness（DSH）
+的技能根按 rank 为：项目 `<项目根>/.dsh/skills`（100）→ 项目
+`<项目根>/.agents/skills`（200）→ 用户 `~/.dsh/skills`（400）→ 用户
+`~/.agents/skills`（500）；本工具默认在同层两两之间核对（项目 `.dsh`↔`.agents`、
+用户 `.dsh`↔`.agents`），并保留 zcode 旧根 `~/.zcode/skills` 作兜底。
 `sync_entity.py` 只做单目标内容同步——新增文件在两个根会各自复制、断链；
 本工具作为其固定收尾步：逐件核对内容（md5）与硬链（samefile），`--fix` 时
 只修「内容相同但非硬链」的右根文件（以左根为目标重建硬链）；内容不一致
 只报告、不修复（需人工判断以哪侧为准）。
 
-默认双根（不给参数时）：由脚本位置推导——脚本位于
-`<home>/.zcode|.agents/skills/<技能>/scripts/` 时，脚本所在侧为左根，
-同名技能在另一侧为右根；非标准布局请显式传左右根。
+默认双根（不给参数时）：由脚本位置推导——脚本位于 `<技能根>/<技能>/scripts/`
+时，脚本所在侧为左根，同名技能在同层另一根为右根；非标准布局请显式传左右根。
+核对时跳过仓库级资产与 DSH 联接目录（`.dsh`），避免目录联接递归。
 
 用法:
     python check_double_root.py [左根] [右根] [--fix]
@@ -25,31 +29,60 @@ import tempfile
 from pathlib import Path
 
 
+SKIP_DIRS = {".git", ".dsh", "memory", "docs", "examples", ".github",
+             "__pycache__", "out", ".studio", ".tmp", ".v2c"}
+SKIP_FILES = {"AGENTS.md", ".gitignore"}
+
+
+def find_project_root(start):
+    """最近含 .git 的祖先目录；找不到返回 None。"""
+    cur = Path(start).resolve()
+    for p in (cur, *cur.parents):
+        try:
+            if (p / ".git").exists():
+                return p
+        except OSError:
+            return None
+    return None
+
+
 def default_roots():
     """由脚本位置推导默认双根；非标准布局返回 (None, None)。"""
     here = Path(__file__).resolve()
     if here.parent.name != "scripts":
         return None, None
-    skill_dir = here.parent.parent          # <base>/skills/<技能>
-    base = skill_dir.parent                 # <base>/skills
+    skill_dir = here.parent.parent          # <技能根>/<技能>
+    base = skill_dir.parent                 # <技能根>
     home = Path.home().resolve()
-    pairs = ((home / ".zcode" / "skills", home / ".agents" / "skills"),
-             (home / ".agents" / "skills", home / ".zcode" / "skills"))
+    name = skill_dir.name
+    pairs = []
+    proj = find_project_root(base)
+    if proj is not None:
+        pairs += [(proj / ".dsh" / "skills", proj / ".agents" / "skills"),
+                  (proj / ".agents" / "skills", proj / ".dsh" / "skills")]
+    pairs += [(home / ".dsh" / "skills", home / ".agents" / "skills"),
+              (home / ".agents" / "skills", home / ".dsh" / "skills"),
+              # 兼容 zcode 旧双根（历史部署）
+              (home / ".zcode" / "skills", home / ".agents" / "skills"),
+              (home / ".agents" / "skills", home / ".zcode" / "skills")]
     for this_side, other_side in pairs:
         try:
-            if base.resolve() == this_side:
-                return skill_dir, other_side / skill_dir.name
+            if base.resolve() == this_side.resolve():
+                return skill_dir, other_side / name
         except OSError:
             continue
     return None, None
 
 
 def tree(root):
-    """{相对路径(posix): 绝对路径}。"""
+    """{相对路径(posix): 绝对路径}；跳过仓库级资产与 DSH 联接目录，防递归。"""
     out = {}
     root = Path(root)
-    for dirpath, _, filenames in os.walk(root):
+    for dirpath, dirnames, filenames in os.walk(root):
+        dirnames[:] = [d for d in dirnames if d not in SKIP_DIRS]
         for f in filenames:
+            if f in SKIP_FILES:
+                continue
             p = Path(dirpath) / f
             out[p.relative_to(root).as_posix()] = p
     return out
@@ -143,7 +176,12 @@ def selftest():
         (left / "c.txt").write_text("C1", encoding="utf-8")
         (right / "c.txt").write_text("C2", encoding="utf-8")     # 内容不同 → 问题
         (left / "only.txt").write_text("L", encoding="utf-8")    # 仅左 → 问题
+        (left / ".dsh").mkdir()
+        (left / ".dsh" / "link.txt").write_text("link", encoding="utf-8")   # 联接目录 → 跳过
+        (right / ".dsh").mkdir()
+        (right / ".dsh" / "other.txt").write_text("other", encoding="utf-8")
 
+        assert not any(k.startswith(".dsh/") for k in tree(left)), "未跳过 .dsh 联接目录"
         linked, need_fix, problems = compare(left, right)
         assert "a.txt" in linked, "硬链件识别失败"
         assert need_fix == ["SKILL.md"], f"待修识别失败: {need_fix}"
@@ -170,7 +208,7 @@ def main():
     if not left and not right:
         left, right = default_roots()
         if not left:
-            print("未给出左右根，且脚本不在 <home>/.zcode|.agents/skills/<技能>/scripts/ 标准布局下，无法推导默认双根。")
+            print("未给出左右根，且脚本不在 <技能根>/<技能>/scripts/ 标准布局下，无法推导默认双根。")
             print("用法: python check_double_root.py <左根> <右根> [--fix]")
             return 2
         print(f"默认双根（由脚本位置推导）: 左={left} | 右={right}")

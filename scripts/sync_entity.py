@@ -11,11 +11,14 @@
 
 排除项 EXCLUDE（承载文件与仓库级资产、工具运行时残留，不入实体）：
   .git / AGENTS.md / docs / memory / .github / examples / __pycache__
-  .v2c（video2code 插件写入的运行时指针，含本机绝对路径）
+  .dsh（DSH 项目技能根目录联接；跟随会递归回本仓库）
   out / .studio（本地生成的看板与演示产物）
   .tmp（一次性中间产物）
   .gitignore（只对 git 仓库有意义，实体不是仓库）
+  .v2c（zcode 旧运行时残留；历史排除项，保留兼容）
 （新增这类内容时把顶层名加进脚本顶部 EXCLUDE 常量。）
+备份默认落 `<DSH_HOME>/skill-backups`（默认 ~/.dsh/skill-backups），
+不再写 zcode 共用的 ~/.agents/skill-backups。
 
 用法:
     python sync_entity.py <目标目录> [--source <源目录>] [--backup-dir <目录>] [--dry-run] [--prune]
@@ -32,7 +35,7 @@ from datetime import datetime
 from pathlib import Path
 
 EXCLUDE = {".git", "AGENTS.md", "docs", "memory", ".github", "examples", "__pycache__",
-           ".v2c", "out", ".studio", ".tmp", ".gitignore"}
+           ".dsh", ".v2c", "out", ".studio", ".tmp", ".gitignore"}
 MAX_LIST = 20  # 差异清单每类最多打印条数
 
 
@@ -127,7 +130,11 @@ def run(target, source=None, backup_dir=None, dry_run=False, prune=False):
     bdir = None
     if dst_root.is_dir():
         ts = datetime.now().strftime("%Y%m%d-%H%M%S")
-        base = Path(backup_dir) if backup_dir else Path.home() / ".agents" / "skill-backups"
+        if backup_dir:
+            base = Path(backup_dir)
+        else:
+            dsh_home = Path(os.environ.get("DSH_HOME") or (Path.home() / ".dsh"))
+            base = dsh_home / "skill-backups"
         bdir = base / f"{ts}-{dst_root.name}-pre-sync"
         n = 2
         while bdir.exists():  # 同秒连续同步时防重名
@@ -177,6 +184,9 @@ def selftest():
         (src / "examples").mkdir()
         (src / ".v2c").mkdir()
         (src / ".v2c" / "plugin_root").write_text("<plugin-root>/x", encoding="utf-8")
+        (src / ".dsh").mkdir()
+        (src / ".dsh" / "skills").mkdir()
+        (src / ".dsh" / "skills" / "link.txt").write_text("link", encoding="utf-8")
         (src / "out").mkdir()
         (src / "out" / "board.html").write_text("demo", encoding="utf-8")
         (src / "SKILL.md").write_text("v2", encoding="utf-8")
@@ -202,6 +212,7 @@ def selftest():
         assert not (dst / "AGENTS.md").exists(), "排除件被误同步"
         assert not (dst / "docs").exists() and not (dst / "memory").exists() and not (dst / "examples").exists(), "排除目录被误同步"
         assert not (dst / ".v2c").exists(), "运行时残留 .v2c 被误同步（含本机路径）"
+        assert not (dst / ".dsh").exists(), "DSH 项目技能根 .dsh 被误同步（目录联接会递归）"
         assert not (dst / "out").exists() and not (dst / ".studio").exists(), "本地演示产物被误同步"
         assert (dst / "references" / "stale.md").exists(), "默认不应删除多余件"
         assert bak.is_dir() and any(bak.iterdir()), "备份未生成"

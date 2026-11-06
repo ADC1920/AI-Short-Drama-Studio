@@ -61,6 +61,18 @@ git clone https://github.com/ADC1920/AI-Short-Drama-Studio.git "$env:USERPROFILE
 
 也可以先克隆到任意位置，再把整个目录复制进技能扫描路径（`~/.agents/skills/`、`~/.claude/skills/`，或其他平台的对应目录）。技能本身没有运行时依赖，装好即可使用，脚本按需另装。
 
+### DeepSeek Harness（DSH）
+
+DSH 按项目/用户两级发现技能（同名按 rank 取小）：项目 `<项目根>/.dsh/skills`（100）与 `<项目根>/.agents/skills`（200），用户 `~/.dsh/skills`（400）与 `~/.agents/skills`（500），发现深度一层。把本仓库作为开发源时，用自带脚本挂到 DSH 项目根——目录联接，改工作区即时生效，且只写 DSH 自己的根：
+
+```bash
+python scripts/dsh_link.py install      # → <项目根>/.dsh/skills/ai-short-drama-studio
+python scripts/dsh_link.py status
+python scripts/dsh_link.py uninstall
+```
+
+装到 DSH 用户根（所有 DSH 项目可用）：`python scripts/dsh_link.py install --root user`（写 `~/.dsh/skills`，不触碰 zcode 共用的 `~/.agents/skills`）。
+
 ## 第一次使用
 
 按手头材料选一条路线，把对应的话术发给 AI 助手即可。更完整的触发示例写在 `SKILL.md` 的「触发示例」一节，共 28 类场景。
@@ -77,7 +89,7 @@ git clone https://github.com/ADC1920/AI-Short-Drama-Studio.git "$env:USERPROFILE
 .
 ├── SKILL.md                 主入口：五工位、铁律、平台约束、排障、索引
 ├── references/              20 篇工艺文档，按场景加载（含 studio-workflow.md / short-video-studio.md / camera-grammar.md / visual-lexicon.md / character-design.md / publish-ops.md）
-├── scripts/                 21 个工程脚本，全部带 selftest
+├── scripts/                 22 个工程脚本，全部带 selftest
 ├── examples/demo-multi-ep/  最小多集样例，同时用于回归测试
 ├── docs/                    工作区导航与技能更新说明
 └── .github/workflows/       CI：脚本自检与样例端到端回归
@@ -95,7 +107,8 @@ git clone https://github.com/ADC1920/AI-Short-Drama-Studio.git "$env:USERPROFILE
 | `init_project.py` | 多集项目脚手架，幂等扩容 | 无 |
 | `archive_old_docx.py` | 交付文档旧版归档 | 无 |
 | `sync_entity.py` | 技能实体同步：备份、差异扫描、md5 复核 | 无 |
-| `check_double_root.py` | 双根部署核对与补链 | 无 |
+| `check_double_root.py` | DSH 双根核对与补链 | 无 |
+| `dsh_link.py` | DSH 技能根安装：项目/用户根的目录联接、状态、卸载 | 无 |
 | `check_seams.py` | 接缝质量量化：SSIM、亮度、色相、饱和、运动持续性 | numpy、Pillow，抽帧需 ffmpeg |
 | `qa_batch.py` | 一键验收：接缝检测加清单同源核对，输出底账 | numpy、Pillow，可选 ffmpeg |
 | `manifest.py` | 分镜生成清单：提示词版本、参考图、场景 state、定稿状态 | 无 |
@@ -140,6 +153,7 @@ python scripts/init_project.py --selftest
 python scripts/archive_old_docx.py --selftest
 python scripts/sync_entity.py --selftest
 python scripts/check_double_root.py --selftest
+python scripts/dsh_link.py --selftest
 python scripts/check_seams.py --selftest
 python scripts/fix_table_pagination.py --selftest
 python scripts/qa_batch.py --selftest
@@ -160,4 +174,4 @@ CI 在每次 push 和 PR 时执行同一组自检，并对样例项目跑端到�
 
 ## 环境要求
 
-Python 3.9 及以上，Windows、macOS、Linux 均可。技能本体是纯 Markdown，任何支持 Agent Skill 机制的工具都能加载，包括 Claude Code、ZCode、Codex 等。生成环节需要对应的图片和视频平台账号，具体积分消耗与平台限制见 `references/jimeng-seedance-2.5.md`。
+Python 3.9 及以上，Windows、macOS、Linux 均可。技能本体是纯 Markdown，任何支持 Agent Skill 机制的工具都能加载，包括 Claude Code、ZCode、Codex、DeepSeek Harness（DSH）等。生成环节需要对应的图片和视频平台账号，具体积分消耗与平台限制见 `references/jimeng-seedance-2.5.md`。

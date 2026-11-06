@@ -186,7 +186,8 @@ def find_article_scripts(explicit: str):
     if env:
         cands.append(Path(env) / "md2docx.py")
     home = Path.home()
-    for base in (home / ".zcode" / "skills", home / ".agents" / "skills"):
+    for base in (home / ".dsh" / "skills", home / ".agents" / "skills",
+                 home / ".zcode" / "skills"):
         cands.append(base / "article-format" / "scripts" / "md2docx.py")
     for c in cands:
         if c.exists():
