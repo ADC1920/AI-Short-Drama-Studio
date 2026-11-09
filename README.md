@@ -20,13 +20,13 @@ AI 短剧的难点通常不在单个镜头，而在镜头之间的连贯。角�
 - 分镜先行。镜号、时长、转场代码、声音设计一次规划清楚，再进入生成环节。
 - 素材锚定。人物和场景各有一套参考图，所有镜头必须通过 `@素材名` 关联，避免纯文字描述带来的漂移。
 - 关键帧前置。每镜先在静态图上解决构图，再让视频模型做运动，把昂贵的视频生成次数压到最低。
-- 结果可机检。分镜 JSON、引用关系、接缝质量都有对应脚本量化，不靠肉眼猜。
+- 结果可机检。剧本结构、分镜 JSON、引用关系、接缝质量都有对应脚本量化，不靠肉眼猜。
 
 ## 五个工位
 
 | # | 工位 | 做什么 | 产物 | 门禁 |
 |---|---|---|---|---|
-| 1 | 剧本台 | 定画幅与模型，切集，列 @引用名清单 | `第X集/剧本.md` | 非模板占位、有钩子与收尾 |
+| 1 | 剧本台 | 定画幅与模型，切集，列 @引用名清单 | `第X集/剧本.md` | `check_script.py` 无错误（集号、模板占位）、有钩子与收尾 |
 | 2 | 角色与场景台 | 角色锚点法、场景板、人脸审核规避 | `素材/`、`场景板/` | `check_refs.py` 无断链 |
 | 3 | 分镜台 | 工程级分镜（技法 A）或宫格直生（技法 B），逐镜先出关键帧 | 分镜 JSON + 定稿图 | `validate_storyboard.py` PASS |
 | 4 | 出片台 | 按素材形态选档逐镜出片，登记同源 | `视频段/*.mp4` | `manifest.py verify` 同源 |
@@ -89,7 +89,7 @@ python scripts/dsh_link.py uninstall
 .
 ├── SKILL.md                 主入口：五工位、铁律、平台约束、排障、索引
 ├── references/              20 篇工艺文档，按场景加载（含 studio-workflow.md / short-video-studio.md / camera-grammar.md / visual-lexicon.md / character-design.md / publish-ops.md）
-├── scripts/                 22 个工程脚本，全部带 selftest
+├── scripts/                 23 个工程脚本，全部带 selftest
 ├── examples/demo-multi-ep/  最小多集样例，同时用于回归测试
 ├── docs/                    工作区导航与技能更新说明
 └── .github/workflows/       CI：脚本自检与样例端到端回归
@@ -103,6 +103,7 @@ python scripts/dsh_link.py uninstall
 |---|---|---|
 | `validate_storyboard.py` | 分镜 JSON 机检：数量、词数、字符上限、排除词、编号重复 | 无 |
 | `check_refs.py` | @引用与素材文件核对：断链、待补、闲置素材 | 无 |
+| `check_script.py` | 剧本台机检：集号一致、模板占位、@清单、钩子与收尾、场次编号、台词时长预算 | 无 |
 | `make_grid.py` | 本地拼宫格，支持 4/6/9/25 宫格 | Pillow |
 | `init_project.py` | 多集项目脚手架，幂等扩容 | 无 |
 | `archive_old_docx.py` | 交付文档旧版归档 | 无 |

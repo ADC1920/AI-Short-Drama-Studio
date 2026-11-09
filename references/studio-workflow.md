@@ -18,7 +18,7 @@
 
 | # | 工位 | 对标能力 | 本技能产物 | 门禁 |
 |---|---|---|---|---|
-| 1 | 剧本台 | 剧本生成与结构诊断 | `第X集/剧本.md` | 不是模板占位；有钩子与收尾；@引用名已注册 |
+| 1 | 剧本台 | 剧本生成与结构诊断 | `第X集/剧本.md` | `check_script.py` 无错误（集号、模板占位）；有钩子与收尾；@引用名已注册 |
 | 2 | 角色与场景台 | 角色与场景资产管理 | `素材/*.png`、`场景板/` | `check_refs.py` 无断链；角色走锚点法；场景有板与 state |
 | 3 | 分镜台 | 分镜生成、对话改稿、导演台预演 | `第X集/分镜/` 下分镜 JSON + 定稿图 | `validate_storyboard.py` PASS；关键帧定稿；`lint_prompt.py` 无空词 |
 | 4 | 出片台 | 视频生成与定点重拍 | `第X集/分镜/视频段/*.mp4` | `manifest.py verify` 同源；重生率 ≤10% |
@@ -121,14 +121,15 @@ python scripts/studio.py board  <项目目录>          # 出单文件 HTML 看�
 # 0. 建项目
 python scripts/studio.py init "SD-001_剧名" --episodes 3 --title "剧名"
 
-# 1. 剧本台：写第1集/剧本.md，出 @引用名清单
+# 1. 剧本台：写第1集/剧本.md，出 @引用名清单，机检结构与占位
+python scripts/check_script.py "SD-001_剧名/第1集/剧本.md"
 
 # 2. 角色与场景台：按清单出素材/，场景建场景板
 python scripts/check_refs.py "SD-001_剧名"
 
 # 3. 分镜台：写分镜 JSON，机检，出关键帧定稿
 python scripts/validate_storyboard.py "SD-001_剧名/第1集/分镜/sb.json"
-python scripts/lint_prompt.py --script "SD-001_剧名/第1集/剧本.md"
+python scripts/lint_prompt.py --script "SD-001_剧名/第1集/分镜/提示词脚本.md"
 
 # 4. 出片台：逐镜出视频，记清单，核对同源
 python scripts/manifest.py init "SD-001_剧名/第1集/分镜" --batch ep1 --script-version v1
