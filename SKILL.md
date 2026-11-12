@@ -1,6 +1,6 @@
 ---
 name: ai-short-drama-studio
-version: 2.7.0
+version: 2.8.0
 description: "AI 短剧与短视频工作室（双形态）：短剧做多集叙事（剧本台→角色与场景台→分镜台→出片台→后期台），短视频做单条 1 分钟内（脚本台→素材台→分镜台→出片台→发布台），一项目一目录、产物驱动进度、改稿按层回流。当用户要制作 AI 短剧、漫剧、动态漫、竖屏微短剧，或有一句话剧情/梗概要快速成片，或要做 60 秒内短视频、口播脚本、钩子与开场 3 秒、发布文案与标签，或提到即梦短剧工作室、Seedance、DreamScript、Anycook、DreamShot、宫格分镜、@素材引用、素材锚点、角色设定卡、画风三层、光影三件套、运镜三参数、多集项目、连续性台账、段缝衔接、转场、视频延长、配音/TTS、人脸审核不过、审核敏感词、否定约束失效、分镜提示词、分镜图、关键帧、三层工艺分离、多人戏调度、场景首现、视觉验收、剧本与分镜 JSON 校验、参考视频对标、时长预算、字幕封面参数、调色、完播率时使用；出现人脸漂移、角色跨集不像、画风漂移、运镜执行不出、光与场景不符、角色重复、多余字幕水印、拼接跳帧、口播超时长、上线后数据不好等故障要排障时也用。产出工位化流程、分镜蓝图与排障指引。AI short-drama and short-video studio skill (dual form): multi-episode drama and single-clip short video in one project directory; artifact-driven progress, layered rework backflow, spoken-word duration budget, hook taxonomy, publish package, Seedance storyboard prompts, grid storyboard JSON, @reference assets, camera grammar, art-style layers, character sheets, transitions, dubbing, continuity ledgers, blocking, FACS expressions, action previs, publish diagnostics, troubleshooting."
 license: MIT
 ---
@@ -39,7 +39,7 @@ license: MIT
 
 **选形态**：一次交付一条且总时长 ≤60 秒 → 短视频（`studio.py init <目录> --form short --target 60`，工位名为脚本台/素材台/分镜台/出片台/发布台）；多集、角色延续、集间衔接 → 短剧（默认）。两种目录兼容，短片起手后续扩系列不用搬家。短视频的时长预算、三档节奏、Hook 六分类、发布包见 `references/short-video-studio.md`。
 
-## 触发示例（50 类话术，命中即可直接开工）
+## 触发示例（58 类话术，命中即可直接开工）
 
 | 用户话术示例 | 落点 |
 |---|---|
@@ -93,6 +93,14 @@ license: MIT
 | 「同一部剧要发抖音快手视频号，剪几个版本」 | 三平台时长与节奏差异（`references/publish-ops.md` 一节） |
 | 「字幕字号描边、封面文字有没有标准」 | 平台字幕与封面参数（`references/publish-ops.md` 二节） |
 | 「这一集怎么调色」 | 情绪调色起步值（`references/publish-ops.md` 三节） |
+| 「这批生成花了多少分，失败重抽浪费了多少」 | `scripts/task_ledger.py report` |
+| 「哪些镜头还没回执，别重复提交」 | `scripts/task_ledger.py recover`（只查不重生成） |
+| 「改了顾寒的造型，哪些镜头和视频段要重出」 | `scripts/impact_graph.py query --asset @顾寒` |
+| 「清单说同源，但我改过提示词，怎么确认」 | `scripts/manifest.py verify` 的提示词哈希比对 |
+| 「照这条爆款做一版，它的镜头节奏是多少」 | `scripts/measure_ref.py diff` |
+| 「这 14 镜出片大概要多少积分」 | `scripts/estimate_cost.py` |
+| 「这一版剧本该按什么标准审」 | `references/review-rubric.md` + `scripts/review_check.py` |
+| 「这部长篇小说怎么切成 24 集」 | `scripts/novel_index.py candidates`（只给章节区间） |
 
 ## 工位一：剧本台
 
@@ -274,6 +282,8 @@ license: MIT
 | `references/visual-lexicon.md` | 定画风或写场景光线时；画风三层（线条/上色/色板）、十种主流画风写法、画风词转写对照、光影三件套与六种情绪光、场景风格统一四条、背景六段式 |
 | `references/character-design.md` | 立角色或查一致性时；设定卡七段（档案/外貌/标志元素/三套服装/语言风格/关系网/出场弧）、跨镜五维审查、三类漂移成因、复用边界 |
 | `references/publish-ops.md` | 成片上线前后；三平台差异、字幕与封面参数、情绪调色起步值、发布前六查、发布后三指标与归因顺序、迭代纪律 |
+| `references/review-rubric.md` | 审片/审稿/退回修改前；27 条审查规则（剧本/资产/分镜/提示词/成片）、四档结论、审查记录格式 |
+| `references/novel-adaptation.md` | 长篇小说改短剧时；原著结构提取、分集章节区间、与 onlyshot-drama 的职责切分 |
 | `scripts/validate_storyboard.py` | 宫格分镜 JSON 产出后机检（数量/词数/字符上限/必含排除词/禁用句式/编号重复/否定词根·并列主体·抽象形态告警）；门日志 `--stats` 汇总「哪道检查最常响」 |
 | `scripts/make_grid.py` | 本地拼宫格（4/6/9/25：`--cols 2/3/5`），替代在线拼图工具 |
 | `scripts/check_refs.py` | 素材与引用核对：@引用名 vs `素材/` 文件名——断链引用（Error）/ 待补标注（Warning）/ 闲置素材（Warning）；`--bindings` 多素材绑定自检 |
@@ -295,8 +305,16 @@ license: MIT
 | `scripts/gen_script.py` | 脚本/文档版本生成引擎（单引擎＋数据文件）：按数据里的替换清单逐项校验命中数再写新版；`--verify` 回放验收、`--all` 全量回归（替代逐版复制的快照脚本） |
 | `scripts/fix_table_pagination.py` | docx 分页修复（排版后处理）：表格行不跨页＋跨页表头重复、加粗标题与标签行防孤行、表头行与首数据行同页、操作顺序类短段防页界切半 |
 | `scripts/style_code_blocks.py` | docx 代码块视觉后处理：给等宽字体（Consolas）段落补浅底纹＋左侧竖线、左缩进对齐、`keepLines` 防跨页拆断；pPr 按 schema 顺序插入，`--dry-run` 只统计不写盘 |
+| `scripts/task_ledger.py` | 生成任务台账与成本记账：`submit`/`result`/`cancel` 记事件、`recover` 只查不重生成、`report` 出已花与失败浪费；数据落 `_tasks.jsonl`（事件溯源，追加写） |
+| `scripts/impact_graph.py` | 改稿影响面依赖图：从分镜 @引用与 S-* 引用建「素材→镜→段」索引，`query` 直接答要重出哪些段并推出成片需重剪；`_impact.json` 是派生文件可随时重建 |
+| `scripts/estimate_cost.py` | 成本前置估算：读分镜 JSON 数镜 × 内置单价表（`jimeng-seedance-2.5.md` 实测）+ 重试余量，未知档位报错不猜；selftest 断言脚本常量与文档不漂移 |
+| `scripts/measure_ref.py` | 对标测量器：`probe` 用 ffmpeg 场景检测测时长/切点/镜长，`diff` 把参考片与自家成片同一把尺对照；拿不到原片时明确报无法测量 |
+| `scripts/review_check.py` | 审查记录格式机检：结论四档自洽、每条有证据、`PROVISIONAL` 必须写明缺什么证据；只查记录是否空壳，不判内容对错 |
+| `scripts/novel_index.py` | 原著结构索引：编码识别、章节切分、情节点带 quote+offset 可回查、分集章节区间建议；用创作词黑名单锁住与 onlyshot-drama 的职责边界 |
 
 ## 更新记录
+
+- 2026-11-12 v2.8.0 七项能力补齐（按 `docs/implementation-plan-p0-p2.md` 分三批实施）：**这批的共同判断是「项目最强的是成片级量化，最弱的是往上游的账与影响面」**——check_seams/qa_batch 已经把成片量化到指标级，但生成花了多少钱、改了某素材要重出哪些段、这一版剧本按什么标准审，全靠人记。①**P0-1 任务台账与成本记账**——新增 `scripts/task_ledger.py`（submit/result/cancel 记事件 + recover 只查不重生成 + report 汇总），数据落 `_tasks.jsonl` 事件溯源；`studio.py status` 增成本节（已花/失败浪费/待回执，浪费超 10% 告警），`CONFIG_DEFAULTS` 不动、无台账时整节不显示。②**P0-2 改稿影响面依赖图**——新增 `scripts/impact_graph.py`，从分镜 @引用与 S-* 引用建「素材→镜→段」三向索引，`query` 直接给重出清单并按改稿回流表推出「成片需重剪」；`studio.py status --impact` 查询、`check` 检测 `_impact.json` 过期（警告不失败）。`check_scene_plates.py` 的 S-* 正则提为模块级 `SCENE_REF_RE` 供复用，行为不变。③**P0-3 审查规则表**——新增 `references/review-rubric.md`（五范围 27 条，每条指到脚本或写明人工判定项、四档结论）与 `scripts/review_check.py`（只查记录是否空壳：结论自洽、每条有证据、PROVISIONAL 须写明缺什么）；`studio.py status` 在无审查记录时软提示。评估门禁（第二阶段 quality_gate）按方案**未实施**——需真实多版本产出校准。④**P1-4 提示词血缘哈希**——`manifest.py` 新增 `normalize_prompt()`/`prompt_hash()` 与 `prompt_sha256`/`prompt_source` 字段，`verify` 增哈希比对（版号相同但正文改了 → 报「同名不同内容」，这是原先唯一能被操作失误绕过的门禁）；老清单无哈希降级警告，`--strict-hash` 可升级，另加 `backfill-hash` 回填存量。⑤**P1-5 对标测量器**——新增 `scripts/measure_ref.py`（probe/diff），ffmpeg 场景检测测时长/切点/镜长，参考片与自家成片走同一函数才可比；拿不到原片明确报错不估数。⑥**P1-6 成本前置估算**——新增 `scripts/estimate_cost.py`，读分镜 JSON 数镜 × 实测单价 + 重试余量，未知档位报错；selftest 解析参考文档断言常量不漂移。⑦**P2-7 原著结构索引**——新增 `scripts/novel_index.py` 与 `references/novel-adaptation.md`：编码识别、章节切分、情节点带 quote+offset 可回查、分集章节区间建议；**用 `CREATIVE_WORDS` 黑名单在代码层锁住与 onlyshot-drama 的职责边界**（输出含钩子/爽点/反转等创作词即断言失败），`studio.py init --novel` 顺带建索引。⑧脚本 22→28，CI 清单与状态行同步；触发示例 50→58 类。取舍：不引入数据库（jsonl + 文件哈希已覆盖同级语义）、不做 Web 前端（v2.0.0 决策仍成立）、不自建模型调用层（estimate_cost 只算不调）。依据：`docs/optimization-survey-2026-11.md` 的调研结论——社区最高频抱怨是「改一处推倒重来」，成本大头在视频生成占 92–97% 且废片照付，故 P0-1/P0-2 优先。
 
 - 2026-11-09 v2.7.0 剧本台机检（补五工位最后一块空白）：此前剧本台门禁「不是模板占位、有钩子与收尾、@引用名清单齐」只有文字要求，是五个工位里唯一没有脚本落点的一环（其余四台各有 check_refs / validate_storyboard / manifest / qa_batch）。①**新增 `scripts/check_script.py`**——S1 可解析（UTF-8/GBK 自动识别）、S2 集号与目录一致（错误级：串集会整集排错）、S3 模板占位残留（TODO/XXX/占位/待填 = 错误级；待补/待核 = 警告级，长剧本分批读的合法状态）、S4 @引用清单（为 0 时提示纯文字剧本需显式说明）、S5/S6 钩子与收尾（只判「有没有、是不是敷衍词」——标记行去掉标记后少于 6 字即视为只写了词；质量判断留给人）、S7 场次编号连续、S8 台词时长预算（引号与「角色：台词」两种抽取，4.3 字/秒折算，`--target` 核对超/欠）、S9 空场；selftest 12 项。②`studio.py check` 串入剧本台（短剧形态逐集跑，短视频形态仍走 short_plan），check 项 3→4 类。③**修 `lint_prompt.py` 头的死引用**——原注释写「与 check_script.py 分工」，但该脚本从未存在，改为真实三家分工（validate_storyboard 查宫格 JSON / check_script 查剧本台 / 本工具查词层）。④触发示例标题「38 类」与表内 50 行不符，改为 50 类。⑤二十一→二十二脚本口径同步（README/AGENTS/project-info/CI）。依据：GitHub 生态里剧本层机检已是同类项目共识（shuohao-skills 的节拍认领对账、manju-laoli 的 C1~C20、short-drama-factory 的 E1~E23），而本项目剧本台恰恰无机检——这是「产物驱动」承诺上的一个真缺口。
 - 2026-11-01 v2.5.0 工艺词典层与运镜机检（资源包深读吸收）：深读第三方「AI漫剧创作提示词资源包」31 份资料（53 页教程 PDF / 55 页提示词库 doc / 分镜运镜合集 / 人物场景风格手册 / 通用创作指令），按「取其结构与参数、弃其空词」原则补四篇 references——①**新增 `references/camera-grammar.md`**：运镜三参数（起点景别/终点景别/耗时，缺一项模型就在猜速度与落点）、模型用值与设计自用值分离（焦距毫米数、环绕半径用于自查调度是否成立，写进提示词通常是空词，把焦距的视觉后果写成可执行描述）、情绪化运镜十式（每式带可执行写法与常见误用）、视角层级八种（机位高度与距离决定强弱，与景别独立）、九类特殊场景参数（雨景/舞蹈/美食/夜景/跑步/婚礼/风光/微距/宠物）、自查四问；②**新增 `references/visual-lexicon.md`**：画风三层（线条/上色/色板，只写「韩漫风」这类名字跨镜必漂）、十种主流画风的三层写法与使用边界、画风词转写对照表（把「国风唯美」翻成可见特征）、光影三件套（光源/方向/性质，缺一项模型自编光与场景物理不符）与六种情绪光组合、场景风格统一四条、背景提示词六段式；③**新增 `references/character-design.md`**：设定卡七段（基础档案/外貌/标志性元素/三套服装/语言风格/关系网络/出场弧，判定线=交给没看过剧本的人能画出同一个人）、跨镜一致性五维审查（面部/发型/服饰/体型/画风，停在第一个不合格处）、三类高频漂移成因与对策、复用到设定卡为止素材不跨项目；④**新增 `references/publish-ops.md`**：三平台差异（抖音 60-90s 快手 90-120s 视频号 120-180s，三平台分发要剪不同版本而非同一片换文案）、字幕与封面可执行参数、情绪调色起步值（含「同场景内必须一致否则接缝跳色被 check_seams 命中」）、发布前六查、发布后三指标（完播率/前 3 秒留存/互动率，播放量是结果不是诊断项）、归因顺序（先看留存曲线掉在哪一秒再回看那一秒在做什么）、迭代纪律（一次只改一个变量）；⑤**`scripts/lint_prompt.py` 新增运镜三参数缺失检查**（有运镜但缺起点景别/终点景别/速度耗时即告警，selftest 加 camera_no_params 一项）；⑥`references/agent-prompt.md` 词库速查补运镜三参数铁律、序列自检补运镜参数两项；⑦SKILL.md 触发示例 39→50 类、铁律区补「运镜三参数」与「画风三层」两条、排障表补 4 行、description 改写补新触发词（978 字符，1024 限内）；⑧顺手修 `concat_clips.py` / `trim_clips.py` 的 subprocess 编码缺陷——`text=True` 用系统本地编码（中文 Windows 为 GBK）解码 ffprobe/ffmpeg 的 UTF-8 输出，遇非 GBK 字节即 UnicodeDecodeError 且 stdout 变 None，导致 `concat_clips.py --selftest` 在中文 Windows 上必挂；统一补 `encoding="utf-8", errors="replace"`（check_seams/studio 原本已写对）；⑨二十篇 references、二十一脚本口径同步（README/AGENTS/project-info）。

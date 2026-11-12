@@ -4,7 +4,7 @@
 
 ## 一、架构
 
-技能包三段式：主入口 `SKILL.md`（触发示例 50 类 / 五工位流水线双形态 / 对标参考流程 / 铁律与核心公式 / 平台硬约束 / 成本纪律 / 排障速查 / 项目层多集）→ `references/` 20 篇按需加载工艺文档 → `scripts/` 22 个工程脚本。数据流：用户素材（完整剧本 / 一句话梗概）→ 工作室项目（`studio.py init`：`studio.json` + `素材/` + `场景板/` + 各集三件）→ 五工位推进（剧本台 → 角色与场景台 → 分镜台〔技法 A 分镜智能体 / 技法 B 宫格直生〕→ 出片台 → 后期台）→ 门禁串联（`studio.py check`：`check_script` / `validate_storyboard` / `check_refs` / `manifest verify` / `check_scene_plates`）→ 成片与发布包装。改稿按层回流，`studio.py status` 用文件时间给出「资产晚于成片」「分镜晚于视频段」提示。本工作区（git 仓库）为开发源；发布面=GitHub；使用面=本机技能实体（静态复制，`scripts/sync_entity.py` 一键同步）。
+技能包三段式：主入口 `SKILL.md`（触发示例 58 类 / 五工位流水线双形态 / 对标参考流程 / 铁律与核心公式 / 平台硬约束 / 成本纪律 / 排障速查 / 项目层多集）→ `references/` 22 篇按需加载工艺文档（含 review-rubric 审查规则表、novel-adaptation 原著改编）→ `scripts/` 28 个工程脚本（含 task_ledger 任务台账、impact_graph 改稿影响面、estimate_cost 成本估算、measure_ref 对标测量、review_check 审查记录、novel_index 原著索引）。数据流：用户素材（完整剧本 / 一句话梗概 / 长篇小说）→ 工作室项目（`studio.py init`：`studio.json` + `素材/` + `场景板/` + 各集三件；`--novel` 时另建 `_novel/index.json`）→ 五工位推进（剧本台 → 角色与场景台 → 分镜台〔技法 A 分镜智能体 / 技法 B 宫格直生〕→ 出片台 → 后期台）→ 门禁串联（`studio.py check`：`check_script` / `validate_storyboard` / `check_refs` / `manifest verify`（含提示词哈希）/ `check_scene_plates`）→ 成片与发布包装。旁路记录：`_tasks.jsonl` 任务台账（成本）、`_impact.json` 依赖图（改稿影响面）、`_reviews/` 审查记录。本工作区（git 仓库）为开发源；发布面=GitHub；使用面=本机技能实体（静态复制，`scripts/sync_entity.py` 一键同步）。
 
 ## 二、目标
 
@@ -56,3 +56,11 @@
 | 统一裁切 | `scripts/trim_clips.py` | 整拍时长、5.000 秒、帧精确、流复制、干跑 |
 | 分镜拼接成片 | `scripts/concat_clips.py` | 参数一致性、流复制拼接、切点导出、异参数重编码、干跑、apply |
 | 版本生成引擎 | `scripts/gen_script.py` | 单引擎、数据文件、命中数拦截、verify 回放、all 回归 |
+| 任务台账与成本 | `scripts/task_ledger.py` | submit/result/cancel、recover 只查不重生成、report 已花与浪费、_tasks.jsonl 事件溯源 |
+| 改稿影响面 | `scripts/impact_graph.py` | 素材→镜→段索引、query 重出清单、成片重剪推导、_impact.json 派生、与 check_refs 同源 |
+| 成本前置估算 | `scripts/estimate_cost.py` | 镜数×单价、重试余量、未知档位报错、常量与文档不漂移断言 |
+| 对标测量器 | `scripts/measure_ref.py` | probe 时长/切点/镜长、diff 同一把尺、无原片拒绝、ffmpeg 场景检测 |
+| 审查规则表 | `references/review-rubric.md` | 五范围 27 条、四档结论、每条指脚本或人工判定、审查记录格式 |
+| 审查记录机检 | `scripts/review_check.py` | 结论自洽、每条有证据、PROVISIONAL 写明缺口、空壳检测 |
+| 原著结构索引 | `scripts/novel_index.py` | 章节切分、情节点 quote+offset 回查、分集区间、创作词黑名单 |
+| 原著改编职责 | `references/novel-adaptation.md` | 与 onlyshot-drama 切分、能做什么/不能做什么、验收要点 |

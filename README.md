@@ -76,8 +76,8 @@ git clone https://github.com/ADC1920/AI-Short-Drama-Studio.git "$env:USERPROFILE
 ```
 .
 ├── SKILL.md                 主入口：五工位、铁律、平台约束、排障、索引
-├── references/              20 篇工艺文档，按场景加载（含 studio-workflow.md / short-video-studio.md / camera-grammar.md / visual-lexicon.md / character-design.md / publish-ops.md）
-├── scripts/                 22 个工程脚本，全部带 selftest
+├── references/              22 篇工艺文档，按场景加载（含 studio-workflow.md / short-video-studio.md / camera-grammar.md / visual-lexicon.md / character-design.md / publish-ops.md / review-rubric.md / novel-adaptation.md）
+├── scripts/                 28 个工程脚本，全部带 selftest
 ├── examples/demo-multi-ep/  最小多集样例，同时用于回归测试
 ├── docs/                    工作区导航与技能更新说明
 └── .github/workflows/       CI：脚本自检与样例端到端回归
@@ -111,6 +111,12 @@ git clone https://github.com/ADC1920/AI-Short-Drama-Studio.git "$env:USERPROFILE
 | `fix_table_pagination.py` | docx 分页修复：表格不跨页、表头重复、防孤行 | python-docx |
 | `style_code_blocks.py` | docx 代码块后处理：底纹、左边框、防跨页拆断 | python-docx |
 | `tts_voice.py` | 配音合成：按【角色｜profile_id】标注稿调本地 VoiceStudio 逐段出 mp3，读 studio.json 音色表 | 本地 VoiceStudio 服务（可选） |
+| `task_ledger.py` | 生成任务台账与成本记账：submit/result/cancel 事件、recover 只查不重生成、report 汇总已花与浪费 | 无 |
+| `impact_graph.py` | 改稿影响面依赖图：建「素材→镜→段」索引，query 直接给重出清单并推出成片需重剪 | 无 |
+| `estimate_cost.py` | 成本前置估算：镜数 × 实测单价 + 重试余量，未知档位报错不猜 | 无 |
+| `measure_ref.py` | 对标测量器：probe 测时长/切点/镜长，diff 与自家成片同一把尺对照 | ffmpeg、ffprobe、numpy、Pillow |
+| `review_check.py` | 审查记录格式机检：结论四档自洽、每条有证据、PROVISIONAL 须写明缺什么 | 无 |
+| `novel_index.py` | 原著结构索引：章节切分、情节点带 quote+offset 可回查、分集区间建议 | 无 |
 
 依赖一次装齐：
 

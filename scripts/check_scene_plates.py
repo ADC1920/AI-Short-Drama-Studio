@@ -44,6 +44,9 @@ LIGHT_SOURCE = ["自然日光", "日光", "窗光", "射灯", "洗墙光", "主�
 LIGHT_DIR = ["自", "方向", "上方", "下方", "左侧", "右侧", "右后", "左后", "前方", "后方", "照入", "投射"]
 GEO_DIR = ["左", "右", "前", "后", "上", "下", "中轴", "尽端", "入口", "两侧", "中央"]
 
+# 场景编号引用：S-01 或 S-01@day-crowd。impact_graph.py 也用它抽依赖，故提为模块级。
+SCENE_REF_RE = re.compile(r"S-\d{2,}(?:@[a-z0-9][a-z0-9-]*)?")
+
 
 def prompt_text(plate):
     p = plate["prompt"]
@@ -217,7 +220,7 @@ def check(data, script_text=None, max_chars=MAX_PROMPT_CHARS):
 
     # C8b 跨文件引用
     if script_text is not None:
-        refs = set(re.findall(r"S-\d{2,}(?:@[a-z0-9][a-z0-9-]*)?", script_text))
+        refs = set(SCENE_REF_RE.findall(script_text))
         known = set()
         for p in plates:
             known.add(p["id"])
