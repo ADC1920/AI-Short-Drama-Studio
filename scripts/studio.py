@@ -9,6 +9,7 @@
     python studio.py init <项目目录> [--title 标题] [--episodes N] [--aspect 9:16] [--model seedance-2.5]
     python studio.py status <项目目录> [--json]
     python studio.py check <项目目录> [--json]
+    python studio.py board <项目目录> [--out 看板.html]
     python studio.py selftest
 
 项目结构（兼容 init_project.py）:
@@ -365,6 +366,16 @@ def run_check(root: Path):
     if (root / "素材").is_dir():
         checks.append(("check_refs 素材与 @引用",
                        [py, str(HERE / "check_refs.py"), str(root)]))
+
+    # 剧本台门禁：五工位里只有剧本台原先无机检，这里补上结构、占位与 @清单
+    if form == "drama":
+        for u in us:
+            f = u["dir"] / SCRIPT_NAMES["drama"]
+            if f.is_file():
+                checks.append((f"check_script {f.relative_to(root)}",
+                               [py, str(HERE / "check_script.py"), str(f)]))
+            else:
+                checks.append((f"check_script {f.relative_to(root)}（缺剧本.md）", None))
 
     for u in us:
         d = u["dir"] / "分镜"
