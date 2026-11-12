@@ -24,6 +24,8 @@
 退出码: 0=正常/检查通过, 1=检查有失败, 2=用法/路径错误
 """
 import argparse
+import contextlib
+import io
 import json
 import os
 import re
@@ -287,6 +289,7 @@ def collect(root: Path):
         "stages": stages,
         "next": next_stage,
         "warnings": warnings,
+        "cost": cost_summary(root),
         "episodes_detail": per,
     }
 
@@ -326,6 +329,22 @@ def impact_warnings(root: Path, us):
     return out
 
 
+def cost_summary(root: Path):
+    """读 _tasks.jsonl 的成本汇总。无台账返回 None（老项目兼容）。
+
+    台账不是门禁，是账本：只读、只汇总，不写盘、不判失败。
+    """
+    sys.path.insert(0, str(HERE))
+    try:
+        from task_ledger import load_events, fold_state, summarize
+    except ImportError:
+        return None
+    events, bad = load_events(root)
+    if not events and not bad:
+        return None
+    return summarize(fold_state(events), bad)
+
+
 def print_status(info):
     form_label = {"drama": "短剧", "short": "短视频"}.get(info["form"], info["form"])
     print(f"{'短剧' if info['form'] == 'drama' else '短视频'}工作室 · 《{info['title']}》")
@@ -340,10 +359,47 @@ def print_status(info):
     nxt = info["next"]
     print()
     print(f"当前焦点工位：{nxt['name']}（{nxt['detail']}）" if nxt else "五个工位产物齐备，进入整体验收。")
+    c = info.get("cost")
+    if c:
+        line = (f"成本：已花 {c['spent']:.0f} 分 · "
+                f"失败重抽 {c['wasted']:.0f} 分（占 {c['waste_ratio']*100:.1f}%）")
+        if c["pending"]:
+            line += f" · 待回执 {c['pending']} 镜"
+        print("\n" + line)
+        if c["waste_ratio"] > 0.10:
+            print("  警告：浪费占比超过 10% 重生预算，先查素材与提示词的系统性问题")
     if info["warnings"]:
         print("\n改稿提示：")
         for w in info["warnings"]:
             print(f"  - {w}")
+    # 审查记录软提示：不阻断，只提醒有产物但没审查记录
+    reviews = root_of(info) / "_reviews"
+    if root_of(info).is_dir() and any(s["status"] == "done" for s in info["stages"]):
+        if not reviews.is_dir() or not any(reviews.glob("*.md")):
+            print("\n审查：本集尚无审查记录（按 references/review-rubric.md 逐范围勾，"
+                  "写进 _reviews/）")
+    # 原著索引软提示：有索引但未覆盖全部章节
+    novel = load_novel_index(root_of(info))
+    if novel and novel.get("unread"):
+        nums = "、".join(str(x) for x in novel["unread"][:8])
+        print(f"\n原著：已分析 {novel.get('read_range','')}，"
+              f"尚有 {len(novel['unread'])} 章未分析（{nums}）——分批用 "
+              f"novel_index.py index --chapters 补")
+
+
+def root_of(info):
+    return Path(info["project"])
+
+
+def load_novel_index(root: Path):
+    """读 _novel/index.json；无则 None。只读，不建。"""
+    p = root / "_novel" / "index.json"
+    if not p.is_file():
+        return None
+    try:
+        return json.loads(p.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError, UnicodeDecodeError):
+        return None
 
 
 def run_check(root: Path):
@@ -404,6 +460,20 @@ def run_check(root: Path):
         else:
             checks.append(("short_plan 口播时长预算（缺 脚本.md）", None))
 
+    # 派生索引过期检测：_impact.json 存在但比相关产物旧 → 告警（不进失败集）
+    impact_file = root / "_impact.json"
+    stale_impact = None
+    if impact_file.is_file():
+        impact_mtime = impact_file.stat().st_mtime
+        newest_src = 0.0
+        for u in us:
+            for p in (u["dir"] / "分镜").glob("*"):
+                if p.is_file() and p.suffix.lower() in (SB_EXTS | IMAGE_EXTS):
+                    newest_src = max(newest_src, p.stat().st_mtime)
+        if newest_src > impact_mtime:
+            stale_impact = ("_impact.json 已过期（分镜有更新）——"
+                            f"重跑 python scripts/impact_graph.py build {root}")
+
     results = []
     for name, cmd in checks:
         if cmd is None:
@@ -421,7 +491,8 @@ def run_check(root: Path):
             results.append({"name": name, "ok": False, "exit": 2, "output": str(e)})
 
     return {"project": str(root), "results": results,
-            "ok": all(r["ok"] for r in results) if results else True}
+            "ok": all(r["ok"] for r in results) if results else True,
+            "warnings": [stale_impact] if stale_impact else []}
 
 
 def print_check(res):
@@ -435,6 +506,8 @@ def print_check(res):
             for ln in r["output"].splitlines()[-12:]:
                 print(f"    {ln}")
     print(f"\n汇总：{'全部通过' if res['ok'] else '存在失败项，按上面输出修到 PASS'}（{len(res['results'])} 项）")
+    for w in res.get("warnings") or []:
+        print(f"警告：{w}")
 
 
 def cmd_board(args):
@@ -640,6 +713,24 @@ def cmd_init(args):
     else:
         print(f"工位目录：素材/ · 场景板/ · 第1..{max(1, args.episodes)}集/{{剧本.md,分镜/,成片/}}")
         print("下一步：写第1集剧本 → python studio.py status .")
+
+    # 可选：初始化时顺带建原著结构索引
+    novel = getattr(args, "novel", "")
+    if novel:
+        sys.path.insert(0, str(HERE))
+        try:
+            from novel_index import build_index
+            src = Path(novel)
+            data = build_index(src)
+            out = root / "_novel" / "index.json"
+            out.parent.mkdir(parents=True, exist_ok=True)
+            out.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n",
+                           encoding="utf-8", newline="\n")
+            n = sum(len(c.get("points") or []) for c in data["chapters"])
+            print(f"原著索引：{data['chapter_count']} 章 · {data['chars']} 字 · "
+                  f"情节点 {n} 个 → {out.relative_to(root)}")
+        except (FileNotFoundError, ValueError, OSError, ImportError) as e:
+            print(f"原著索引未建（{e}）——可稍后单独跑 novel_index.py index")
     return 0
 
 
@@ -648,6 +739,25 @@ def cmd_status(args):
     if not root.is_dir():
         print(f"项目目录不存在：{root}")
         return 2
+    # --impact：直接答「改了 X 要重出什么」，依赖图优先于 mtime 粗判
+    if getattr(args, "impact", ""):
+        sys.path.insert(0, str(HERE))
+        try:
+            from impact_graph import load_impact, build, query, format_query
+        except ImportError as e:
+            print(f"影响面模块不可用：{e}")
+            return 2
+        data = load_impact(root)
+        if data is None:
+            print(f"未找到 _impact.json，先建索引：python scripts/impact_graph.py build {root}")
+            return 2
+        res = query(data, args.impact)
+        if res is None:
+            print(f"未找到引用：{args.impact}（刚改过分镜则先重跑 impact_graph build）")
+            return 1
+        print(format_query(res) if not args.json
+              else json.dumps(res, ensure_ascii=False, indent=2))
+        return 0
     info = collect(root)
     if args.json:
         print(json.dumps(info, ensure_ascii=False, indent=2))
@@ -814,7 +924,131 @@ def selftest():
         assert "短视频工作室" in html
         assert "单条明细" in html and "发布包" in html
         assert html.count('class="st ') == 5
-    print("studio selftest: OK（短剧形态 + 短视频形态 + 短端口播预算门禁）")
+
+    # 成本视图：无台账不显示，有台账显示已花与浪费
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp) / "成本项目"
+        assert cmd_init(argparse.Namespace(root=str(root), title="成本", episodes=1,
+                                          aspect="9:16", model="seedance-2.5",
+                                          form="drama", target=60)) == 0
+        info = collect(root)
+        assert info["cost"] is None, "无台账时 cost 应为 None"
+
+        sys.path.insert(0, str(HERE))
+        from task_ledger import cmd_submit, cmd_result, ledger_path
+        cmd_submit(argparse.Namespace(root=str(root), unit="第1集", shot="组01",
+                                     prompt_sha="abc", model="seedance-2.5",
+                                     est_credits=130, note=None, force=False))
+        cmd_result(argparse.Namespace(root=str(root), unit="第1集", shot="组01",
+                                     status="failed", actual_credits=130,
+                                     artifact=None, note="审核"))
+        cmd_submit(argparse.Namespace(root=str(root), unit="第1集", shot="组01",
+                                     prompt_sha="abc", model="seedance-2.5",
+                                     est_credits=130, note=None, force=False))
+        cmd_result(argparse.Namespace(root=str(root), unit="第1集", shot="组01",
+                                     status="success", actual_credits=130,
+                                     artifact="段01.mp4", note=None))
+        info = collect(root)
+        c = info["cost"]
+        assert c and c["spent"] == 130 and c["wasted"] == 130, c
+        assert c["waste_ratio"] == 1.0, c
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            print_status(info)
+        out = buf.getvalue()
+        assert "成本：已花 130 分" in out, out
+        assert "失败重抽 130 分" in out, out
+        assert "超过 10% 重生预算" in out, out
+        assert ledger_path(root).is_file()
+
+    # 影响面：--impact 查询 + 派生索引过期告警
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp) / "影响面项目"
+        assert cmd_init(argparse.Namespace(root=str(root), title="影响面", episodes=1,
+                                          aspect="9:16", model="seedance-2.5",
+                                          form="drama", target=60)) == 0
+        (root / "素材" / "阿青.png").write_bytes(b"")
+        (root / "第1集" / "剧本.md").write_text(
+            "# 第1集\n\n## 钩子\n她推开门，屋里空无一人。\n\n@阿青\n\n## 收尾\n"
+            "门外传来脚步。\n", encoding="utf-8")
+        ep = root / "第1集"
+        (ep / "分镜" / "视频段").mkdir(parents=True)
+        (ep / "分镜" / "sb.json").write_text(json.dumps({"shots": [
+            {"shot_number": "组01",
+             "prompt_text": "中景，@阿青 站在门口。无时间码，无字幕。"}]},
+            ensure_ascii=False), encoding="utf-8")
+        (ep / "分镜" / "视频段" / "段01.mp4").write_bytes(b"")
+        # manifest 的文件名相对「分镜」目录解析，故段文件放在分镜/下
+        (ep / "分镜" / "组01.mp4").write_bytes(b"")
+
+        sys.path.insert(0, str(HERE))
+        from impact_graph import build as ig_build
+        ig_build(root)
+
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            rc = cmd_status(argparse.Namespace(root=str(root), json=False, impact="@阿青"))
+        assert rc == 0, rc
+        out = buf.getvalue()
+        assert "@阿青" in out and "1 镜" in out, out
+
+        # 未找到的引用返回 1
+        with contextlib.redirect_stdout(io.StringIO()):
+            rc = cmd_status(argparse.Namespace(root=str(root), json=False, impact="@不存在"))
+        assert rc == 1, rc
+
+        # 派生索引过期：改分镜不改索引 → check 给警告但不失败
+        seg = ep / "分镜" / "sb.json"
+        seg.write_text(json.dumps({"shots": [
+            {"shot_number": "组01",
+             "prompt_text": "中景，@阿青 站在门口，冷光。无时间码，无字幕。"}]},
+            ensure_ascii=False), encoding="utf-8")
+        future = seg.stat().st_mtime + 10
+        os.utime(seg, (future, future))
+        res = run_check(root)
+        assert res["warnings"], "改分镜后应报 _impact.json 过期"
+        assert any("_impact.json 已过期" in w for w in res["warnings"]), res["warnings"]
+        assert res["ok"], ("过期是警告，不应让 check 失败：" +
+                           json.dumps([r["name"] for r in res["results"] if not r["ok"]],
+                                      ensure_ascii=False))
+
+    # 原著索引：init --novel 建索引 + status 提示未分析章节 + 审查软提示
+    with tempfile.TemporaryDirectory() as tmp:
+        novel = Path(tmp) / "原著.txt"
+        novel.write_text("".join(
+            f"第{i}章 标题{i}\n\n他推开门，屋里空无一人。桌上放着一封信。\n\n"
+            for i in range(1, 6)), encoding="utf-8", newline="\n")
+        root = Path(tmp) / "原著项目"
+        assert cmd_init(argparse.Namespace(root=str(root), title="原著", episodes=2,
+                                          aspect="9:16", model="seedance-2.5",
+                                          form="drama", target=60,
+                                          novel=str(novel))) == 0
+        idx = root / "_novel" / "index.json"
+        assert idx.is_file(), "init --novel 应建索引"
+        data = json.loads(idx.read_text(encoding="utf-8"))
+        assert data["chapter_count"] == 5, data["chapter_count"]
+
+        # status：有产物但无审查记录 → 软提示；未分析章节 → 提示
+        (root / "素材" / "阿青.png").write_bytes(b"")
+        data["unread"] = [4, 5]
+        data["read_range"] = "第1-3章"
+        idx.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            print_status(collect(root))
+        out = buf.getvalue()
+        assert "审查：本集尚无审查记录" in out, out
+        assert "尚有 2 章未分析" in out, out
+
+        # 有审查记录后不该再提示
+        (root / "_reviews").mkdir()
+        (root / "_reviews" / "第1集.md").write_text("# 审查记录\n", encoding="utf-8")
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            print_status(collect(root))
+        assert "尚无审查记录" not in buf.getvalue(), buf.getvalue()
+    print("studio selftest: OK（短剧 + 短视频 + 口播预算 + 成本视图 + 影响面 + "
+          "原著索引/审查提示）")
     return 0
 
 
@@ -833,10 +1067,14 @@ def main():
                         help="drama=多集短剧（默认）/ short=单条短视频")
     p_init.add_argument("--target", type=float, default=60,
                         help="短片目标时长（秒），仅 --form short 使用")
+    p_init.add_argument("--novel", default="",
+                        help="原著 txt 路径：初始化时顺带建结构索引（_novel/index.json）")
 
     p_status = sub.add_parser("status", help="查看五工位进度与当前焦点工位")
     p_status.add_argument("root")
     p_status.add_argument("--json", action="store_true")
+    p_status.add_argument("--impact", default="",
+                          help="查某素材/场景的改稿影响面（需先 impact_graph build）")
 
     p_check = sub.add_parser("check", help="跑分镜、引用、清单、场景板与短端口播预算机检")
     p_check.add_argument("root")
