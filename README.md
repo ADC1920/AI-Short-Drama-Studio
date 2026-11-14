@@ -1,28 +1,28 @@
-# AI 短剧创作工作流
+# AI 短剧/短视频工作室
 
 [![selftest](https://github.com/ADC1920/AI-Short-Drama-Studio/actions/workflows/selftest.yml/badge.svg)](https://github.com/ADC1920/AI-Short-Drama-Studio/actions/workflows/selftest.yml)
 
-把剧本、梗概或一个选题，做成可以直接出片的 AI 视频。整套流程按 Agent Skill 组织，采用**五工位流水线**，一个项目一个目录，工位进度按产物自动判定，改稿按层回流。默认出片平台是即梦 Seedance。
+把剧本、梗概、一句话选题，或一部长篇小说，做成可以直接出片的 AI 视频。整套流程按 Agent Skill 组织，采用**五工位流水线**：一个项目一个目录，工位进度按产物自动判定，改稿按层回流；成本、影响面、验收全部有机检落点，不靠人记。默认出片平台是即梦 Seedance。
 
 两种形态共用同一套骨架：
 
 - **短剧形态**（默认）：剧本台 → 角色与场景台 → 分镜台 → 出片台 → 后期台，做多集叙事
 - **短视频形态**：脚本台 → 素材台 → 分镜台 → 出片台 → 发布台，做单条 1 分钟内
 
-安装之后直接对 AI 助手说「帮我把这个剧本做成漫剧分镜」，技能会被触发并接管后续流程。
+安装之后直接对 AI 助手说「帮我把这个剧本做成漫剧分镜」，技能会被触发并接管后续流程。选题、IP 定位、多集节奏设计这类策划层工作由配套技能 `onlyshot-drama` 承担，本技能负责工作室化制作：剧本落地、资产、分镜、出片与排障。
 
 ## 解决什么问题
 
-AI 短剧的难点通常不在单个镜头，而在镜头之间的连贯。角色每镜换脸、风格逐镜漂移、转场生硬跳帧、参考图过不了人脸审核，这些问题一旦出现，返工成本远高于前期把分镜做扎实。
+AI 短剧的难点通常不在单个镜头，而在镜头之间。角色每镜换脸、风格逐镜漂移、转场生硬跳帧、参考图过不了人脸审核，这些问题一旦出现，返工成本远高于前期把分镜做扎实；比这更贵的是「改一处推倒重来」——改了角色造型不知道哪些镜头要重出，生成失败浪费了多少积分没有账可查。
 
 这个技能把行业里反复验证过的做法固化成可执行的步骤：
 
 - 分镜先行。镜号、时长、转场代码、声音设计一次规划清楚，再进入生成环节。
 - 素材锚定。人物和场景各有一套参考图，所有镜头必须通过 `@素材名` 关联，避免纯文字描述带来的漂移。
 - 关键帧前置。每镜先在静态图上解决构图，再让视频模型做运动，把昂贵的视频生成次数压到最低。
-- 结果可机检。剧本结构、分镜 JSON、引用关系、接缝质量都有对应脚本量化，不靠肉眼猜。
+- 结果可机检。剧本结构、分镜 JSON、引用关系、提示词血缘、接缝质量、成本账、改稿影响面都有对应脚本量化，不靠肉眼猜。
 
-## 五个工位
+## 五工位流水线
 
 | # | 工位 | 做什么 | 产物 | 门禁 |
 |---|---|---|---|---|
@@ -38,14 +38,25 @@ AI 短剧的难点通常不在单个镜头，而在镜头之间的连贯。角�
 
 ```bash
 python scripts/studio.py init "SD-001_剧名" --episodes 3 --title "剧名"
-python scripts/studio.py status "SD-001_剧名"   # 五工位进度 + 当前焦点工位 + 改稿影响提示
-python scripts/studio.py check  "SD-001_剧名"   # 串起分镜/引用/清单/场景板四个门禁
+python scripts/studio.py init "长篇改编" --episodes 24 --novel 原著.txt      # 建项目并切分原著章节索引
+python scripts/studio.py status "SD-001_剧名"   # 五工位进度 + 当前焦点工位 + 改稿影响提示 + 成本视图
+python scripts/studio.py check  "SD-001_剧名"   # 串起剧本/分镜/引用/清单/场景板五类门禁
 python scripts/studio.py board  "SD-001_剧名"   # 出单文件 HTML 看板（.studio/board.html）
-python scripts/studio.py init  "短视频-项目" --form short --target 60   # 新建短视频项目
-python scripts/short_plan.py --script 脚本.md                            # 口播时长预算机检
+python scripts/studio.py status "SD-001_剧名" --impact "@顾寒"   # 改了某素材，哪些镜头和成片要重做
+python scripts/short_plan.py --script 脚本.md   # 口播时长预算机检（短视频形态）
 ```
 
 工位定义、数据契约、改稿回流表与单集推进命令见 `references/studio-workflow.md`。
+
+## 门禁、成本与影响面
+
+提示词工艺解决「怎么拍」，这一层解决「做了什么、花了多少、改了之后要重做什么」。判断全部落成脚本，不靠人记：
+
+- **门禁串联**：`studio.py check` 一次跑五类机检——剧本结构（`check_script`）、分镜 JSON（`validate_storyboard`）、@引用断链（`check_refs`）、生成清单同源（`manifest verify`，含提示词 SHA-256 血缘：版号没升但正文改了，报「同名不同内容」）、场景板（`check_scene_plates`）。词层另有 `lint_prompt.py` 查空词、运镜三参数缺失与否定约束过量。
+- **成本三步账**：批量生成前 `estimate_cost.py` 按「镜数 × 实测单价 + 重试余量」估算；生成中 `task_ledger.py` 记 submit/result/cancel 事件（`_tasks.jsonl` 事件溯源），`recover` 只查未回执任务、不重生成；事后 `report` 汇总已花与失败浪费，`studio.py status` 的成本视图在浪费超 10% 时告警。
+- **改稿影响面**：`impact_graph.py` 从分镜的 @引用与 S-* 引用建「素材→镜→段」索引，`query` 直接给出要重出哪些段、哪些集的成片要重剪；索引是派生文件，随时可重建。
+- **成片量化验收**：`check_seams.py` 对相邻分镜算 SSIM、亮度、色相、饱和、运动持续性五维分；`qa_batch.py` 一键出验收底账；审片标准见 `references/review-rubric.md`（五范围 27 条、四档结论），`review_check.py` 机检审查记录本身是否空壳。
+- **对标与原著**：`measure_ref.py` 用 ffmpeg 场景检测，把参考视频与自家成片放同一把尺下测时长、切点、镜长；长篇改编入口是 `novel_index.py`（章节切分、情节点带原文位置可回查、分集区间建议），职责边界见 `references/novel-adaptation.md`。
 
 ## 安装
 
@@ -63,7 +74,7 @@ git clone https://github.com/ADC1920/AI-Short-Drama-Studio.git "$env:USERPROFILE
 
 ## 第一次使用
 
-按手头材料选一条路线，把对应的话术发给 AI 助手即可。更完整的触发示例写在 `SKILL.md` 的「触发示例」一节，共 28 类场景。
+按手头材料选一条路线，把对应的话术发给 AI 助手即可。更完整的触发示例写在 `SKILL.md` 的「触发示例」一节，共 58 类场景。
 
 1. 有完整剧本：让助手读 `references/agent-prompt.md`（分镜台技法 A），把其中的系统提示词贴进新对话，再输入剧本。
 2. 只有梗概：让助手按 `references/grid-storyboard.md`（分镜台技法 B）生成宫格分镜 JSON，用 `scripts/validate_storyboard.py` 机检，再用 `scripts/make_grid.py` 拼图。
@@ -75,11 +86,11 @@ git clone https://github.com/ADC1920/AI-Short-Drama-Studio.git "$env:USERPROFILE
 
 ```
 .
-├── SKILL.md                 主入口：五工位、铁律、平台约束、排障、索引
-├── references/              22 篇工艺文档，按场景加载（含 studio-workflow.md / short-video-studio.md / camera-grammar.md / visual-lexicon.md / character-design.md / publish-ops.md / review-rubric.md / novel-adaptation.md）
+├── SKILL.md                 主入口：五工位、铁律、平台约束、排障、索引（触发示例 58 类）
+├── references/              22 篇工艺文档，按场景加载
 ├── scripts/                 28 个工程脚本，全部带 selftest
 ├── examples/demo-multi-ep/  最小多集样例，同时用于回归测试
-├── docs/                    工作区导航与技能更新说明
+├── docs/                    开发导航与技能更新说明
 └── .github/workflows/       CI：脚本自检与样例端到端回归
 ```
 
@@ -99,8 +110,8 @@ git clone https://github.com/ADC1920/AI-Short-Drama-Studio.git "$env:USERPROFILE
 | `check_double_root.py` | 双根部署核对与补链 | 无 |
 | `check_seams.py` | 接缝质量量化：SSIM、亮度、色相、饱和、运动持续性 | numpy、Pillow，抽帧需 ffmpeg |
 | `qa_batch.py` | 一键验收：接缝检测加清单同源核对，输出底账 | numpy、Pillow，可选 ffmpeg |
-| `manifest.py` | 分镜生成清单：提示词版本、参考图、场景 state、定稿状态 | 无 |
-| `studio.py` | 工作室总控：建项目（双形态）、五工位进度、门禁串联、改稿影响提示、HTML 看板 | 无 |
+| `manifest.py` | 分镜生成清单：提示词版本、参考图、场景 state、定稿状态；verify 含提示词 SHA-256 血缘比对 | 无 |
+| `studio.py` | 工作室总控：建项目（双形态、可带原著索引）、五工位进度、门禁串联、改稿影响查询、成本视图、HTML 看板 | 无 |
 | `short_plan.py` | 短视频脚本机检：口播字数区间、单镜下限、时间轴断档、钩子、发布包；`--target` 预算反推 | 无 |
 | `check_scene_plates.py` | 场景板机检：字段、ID/state、政策冲突、光线、字数、敏感词、跨文件引用 | 无 |
 | `lint_prompt.py` | 提示词词层机检：空词、运镜歧义、运镜三参数缺失、一镜多运镜、步态物理锁、完成态、负面词过量 | 无 |
@@ -124,7 +135,7 @@ git clone https://github.com/ADC1920/AI-Short-Drama-Studio.git "$env:USERPROFILE
 pip install pillow numpy python-docx
 ```
 
-ffmpeg 仅 `check_seams.py`、`qa_batch.py`、`trim_clips.py`、`concat_clips.py` 的实拍部分需要，缺失时相关检查会自动跳过。
+ffmpeg 仅 `check_seams.py`、`qa_batch.py`、`trim_clips.py`、`concat_clips.py`、`measure_ref.py` 的实拍部分需要，缺失时相关检查会自动跳过。
 
 ## 示例项目
 
@@ -133,18 +144,19 @@ ffmpeg 仅 `check_seams.py`、`qa_batch.py`、`trim_clips.py`、`concat_clips.py
 ```bash
 python scripts/validate_storyboard.py "examples/demo-multi-ep/第1集/分镜/sb.json"
 python scripts/check_refs.py examples/demo-multi-ep
+python scripts/check_script.py examples/demo-multi-ep
 ```
 
 ## 自检
 
-每个脚本都带 `--selftest`，改动后逐个跑一遍：
+每个脚本都带 `--selftest`，改动后逐个跑一遍（与 CI 同一清单）：
 
 ```bash
 python scripts/validate_storyboard.py --selftest
-python scripts/make_grid.py --selftest
 python scripts/check_refs.py --selftest
 python scripts/check_script.py --selftest
 python scripts/init_project.py --selftest
+python scripts/make_grid.py --selftest
 python scripts/archive_old_docx.py --selftest
 python scripts/sync_entity.py --selftest
 python scripts/check_double_root.py --selftest
@@ -157,15 +169,25 @@ python scripts/concat_clips.py --selftest
 python scripts/gen_script.py --selftest
 python scripts/check_scene_plates.py --selftest
 python scripts/gen_scene_sheet.py --selftest
-python scripts/lint_prompt.py --selftest
 python scripts/style_code_blocks.py --selftest
+python scripts/lint_prompt.py --selftest
 python scripts/studio.py --selftest
 python scripts/short_plan.py --selftest
 python scripts/tts_voice.py --selftest
+python scripts/estimate_cost.py --selftest
+python scripts/task_ledger.py --selftest
+python scripts/impact_graph.py --selftest
+python scripts/measure_ref.py --selftest
+python scripts/review_check.py --selftest
+python scripts/novel_index.py --selftest
 ```
 
-CI 在每次 push 和 PR 时执行同一组自检，并对样例项目跑端到端回归。
+CI 在推送到 main 和 PR 时执行同一组自检，并对样例项目跑端到端回归。
 
 ## 环境要求
 
-Python 3.9 及以上，Windows、macOS、Linux 均可。技能本体是纯 Markdown，任何支持 Agent Skill 机制的工具都能加载，包括 Claude Code、ZCode、Codex 等。生成环节需要对应的图片和视频平台账号，具体积分消耗与平台限制见 `references/jimeng-seedance-2.5.md`。
+Python 3.9 及以上，Windows、macOS、Linux 均可。技能本体是纯 Markdown，任何支持 Agent Skill 机制的工具都能加载，包括 Claude Code、ZCode、Codex 等。生成环节需要即梦（Seedance）平台账号，具体积分消耗与平台限制见 `references/jimeng-seedance-2.5.md`。
+
+## 许可证
+
+MIT，详见 [LICENSE](LICENSE)。
