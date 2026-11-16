@@ -65,21 +65,32 @@ def _scene_re():
 
 
 def episode_units(root: Path):
-    """集目录列表：短剧为 第1集/第2集…，短视频为根目录本身。"""
+    """集目录列表：短剧为 第1集/第2集…，短视频为根目录本身。
+
+    兼容两种布局：v3 七目录在 05_shots/第N集/，v2 是根下 第N集/。
+    unit 的 shots 字段=分镜文件所在目录，下游一律用它，不再拼「分镜/」。
+    """
     out = []
-    for d in sorted(root.iterdir() if root.is_dir() else []):
-        if d.is_dir() and d.name.startswith("第") and d.name.endswith("集"):
-            out.append({"label": d.name, "dir": d})
+
+    def scan(base: Path, is_v3):
+        for d in sorted(base.iterdir() if base.is_dir() else []):
+            if d.is_dir() and d.name.startswith("第") and d.name.endswith("集"):
+                out.append({"label": d.name, "dir": d,
+                            "shots": d if is_v3 else d / "分镜"})
+
+    scan(root / "05_shots", True)
+    scan(root, False)          # v2 布局：根下 第N集/
+    if not out and (root / "05_shots").is_dir():
+        out.append({"label": "single", "dir": root, "shots": root / "05_shots"})
     if not out and (root / "分镜").is_dir():
-        out.append({"label": "single", "dir": root})
+        out.append({"label": "single", "dir": root, "shots": root / "分镜"})
     return out
 
 
-def storyboard_files(unit_dir: Path):
-    d = unit_dir / "分镜"
-    if not d.is_dir():
+def storyboard_files(shots_dir: Path):
+    if not shots_dir.is_dir():
         return []
-    return sorted(p for p in d.glob("*.json")
+    return sorted(p for p in shots_dir.glob("*.json")
                   if p.is_file() and p.name not in SKIP_JSON)
 
 
@@ -107,9 +118,10 @@ def extract_prompts(path: Path):
     return out
 
 
-def load_manifest(unit_dir: Path):
+def load_manifest(unit_dir: Path, shots_dir: Path = None):
     """读 _manifest.json，返回 {镜号: 段文件名}。无清单返回空。"""
-    mf = unit_dir / "分镜" / "_manifest.json"
+    d = shots_dir if shots_dir is not None else unit_dir / "分镜"
+    mf = d / "_manifest.json"
     if not mf.is_file():
         return {}
     try:
@@ -124,9 +136,11 @@ def load_manifest(unit_dir: Path):
 
 
 def collect_assets(root: Path):
-    """素材名 -> 相对路径。"""
+    """素材名 -> 相对路径。v3 用 03_assets/，v2 用 素材/。"""
     out = {}
-    d = root / "素材"
+    d = root / "03_assets"
+    if not d.is_dir():
+        d = root / "素材"
     if not d.is_dir():
         return out
     for f in sorted(d.iterdir()):
@@ -144,14 +158,14 @@ def build(root: Path):
 
     for u in episode_units(root):
         unit = u["label"]
-        segmap = load_manifest(u["dir"])
+        sbd = u["shots"]
+        segmap = load_manifest(u["dir"], sbd)
         prompts = {}
-        for sb in storyboard_files(u["dir"]):
+        for sb in storyboard_files(sbd):
             prompts.update(extract_prompts(sb))
-        # 分镜 JSON 抽不出时，退回看分镜 md 里的提示词行
+        # 分镜 JSON 抽不出时，退回看分镜目录里的提示词 md
         if not prompts:
-            md = u["dir"] / "分镜"
-            for p in sorted(md.glob("*.md")) if md.is_dir() else []:
+            for p in sorted(sbd.glob("*.md")) if sbd.is_dir() else []:
                 prompts[p.stem] = p.read_text(encoding="utf-8", errors="replace")
         for shot, text in prompts.items():
             shot_key = f"{unit}/{shot}"
@@ -161,7 +175,8 @@ def build(root: Path):
             text_wo_scenes = scene_re.sub(" ", text)
             refs = sorted({m for m in ref_re.findall(text_wo_scenes) if not is_ignored(m)})
             seg_file = segmap.get(shot, "")
-            seg = f"{unit}/分镜/视频段/{seg_file}" if seg_file else ""
+            seg = (str((sbd / "视频段" / seg_file).relative_to(root)).replace(os.sep, "/")
+                   if seg_file else "")
             shot_index[shot_key] = {
                 "refs": [f"@{r}" for r in refs],
                 "scenes": scenes,
@@ -189,7 +204,9 @@ def build(root: Path):
     # 已出成片的集列表，query 时用来推「成片需重剪」
     finals = []
     for u in episode_units(root):
-        fd = u["dir"] / "成片"
+        fd = u["shots"] / "成片"
+        if not fd.is_dir():
+            fd = u["dir"] / "成片"
         if fd.is_dir():
             for f in sorted(fd.glob("*.mp4")):
                 finals.append(str(f.relative_to(root)).replace(os.sep, "/"))

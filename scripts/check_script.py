@@ -178,17 +178,30 @@ def check(path, target=None, rate=DEFAULT_RATE, project=None):
 
 
 def find_scripts(root):
-    """项目目录 → 全部 第N集/剧本.md（按集号排序）。"""
+    """项目目录 → 全部 第N集/剧本.md（按集号排序）。
+
+    两代布局都扫：v3 在 02_script/第N集/，v2 在根下 第N集/。
+    短视频形态的脚本名是 脚本.md，也认。
+    """
     root = Path(root)
     out = []
-    for d in sorted(root.glob("第*集")):
-        f = d / "剧本.md"
-        if f.is_file():
-            out.append(f)
+    bases = [root / "02_script", root]
+    for base in bases:
+        for d in sorted(base.glob("第*集")) if base.is_dir() else []:
+            for name in ("剧本.md", "脚本.md"):
+                f = d / name
+                if f.is_file():
+                    out.append(f)
+                    break
     if not out:
-        single = root / "剧本.md"
-        if single.is_file():
-            out.append(single)
+        for name in ("剧本.md", "脚本.md"):
+            for base in bases:
+                single = base / name
+                if single.is_file():
+                    out.append(single)
+                    break
+            if out:
+                break
     return out
 
 

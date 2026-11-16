@@ -2,14 +2,21 @@
 # -*- coding: utf-8 -*-
 """多集项目脚手架（ai-short-drama-studio 技能）。
 
-一键生成多集漫剧项目的标准结构：
+一键生成多集短剧项目的七目录标准结构：
     <项目>/
-      素材/                     全剧共用素材（文件名 = @ 引用名）
-      第1集/剧本.md + 分镜/ + 成片/
-      第2集/...
-      ...（按 --episodes 数量）
+      00_project/        brief.md / project-status.md / routing.md / history/
+      00_inbox/
+      01_story/          第N集/treatment.md（分场大纲）
+      02_script/         第N集/剧本.md
+      03_assets/         全剧共用素材（文件名 = @ 引用名）
+      04_performance/    第N集/acting-v01.md
+      05_shots/          第N集/{sb.json, 视频段/, 成片/, 尾帧.md}
+      06_prompts/        第N集/cinedance-v01.md
+      场景板/
 
 幂等：已存在的目录/文件不覆盖、不重建，重复运行为安全空操作。
+studio.py 的 init 已覆盖同一套骨架并额外写 studio.json；本脚本保留给
+只要空目录、不要配置文件的场景。
 
 用法:
     python init_project.py <项目目录> [--episodes N]
@@ -20,6 +27,11 @@ import argparse
 import sys
 import tempfile
 from pathlib import Path
+
+# 七目录 + 场景板：集级子目录只在这几个阶段目录下建
+TOP_DIRS = ("00_project", "00_inbox", "01_story", "02_script", "03_assets",
+            "04_performance", "05_shots", "06_prompts", "场景板")
+PER_EPISODE_DIRS = ("01_story", "02_script", "04_performance", "05_shots", "06_prompts")
 
 EPISODE_TEMPLATE = """# 第{ep}集 剧本
 
@@ -55,14 +67,18 @@ def init_project(root, episodes):
         created.append(str(p))
 
     ensure(root)
-    ensure(root / "素材")
+    for name in TOP_DIRS:
+        ensure(root / name)
+    ensure(root / "00_project" / "history")
     for ep in range(1, episodes + 1):
-        ep_dir = root / f"第{ep}集"
-        ensure(ep_dir)
-        ensure(ep_dir / "分镜")
-        ensure(ep_dir / "成片")
-        ensure_file(ep_dir / "剧本.md", EPISODE_TEMPLATE.format(ep=ep))
-        ensure_file(ep_dir / "分镜" / "尾帧.md", TAIL_TEMPLATE.format(ep=ep))
+        for name in PER_EPISODE_DIRS:
+            ensure(root / name / f"第{ep}集")
+        shots = root / "05_shots" / f"第{ep}集"
+        ensure(shots / "视频段")
+        ensure(shots / "成片")
+        ensure_file(root / "02_script" / f"第{ep}集" / "剧本.md",
+                    EPISODE_TEMPLATE.format(ep=ep))
+        ensure_file(shots / "尾帧.md", TAIL_TEMPLATE.format(ep=ep))
 
     print(f"项目：{root}")
     print(f"创建 {len(created)} 项，跳过（已存在）{len(skipped)} 项：")
@@ -76,23 +92,29 @@ def selftest():
         root = Path(tmp) / "我的漫剧"
         rc = init_project(root, 3)
         assert rc == 0
-        # 结构断言
-        assert (root / "素材").is_dir()
+        # 七目录结构断言
+        for name in TOP_DIRS:
+            assert (root / name).is_dir(), name
+        assert (root / "00_project" / "history").is_dir()
         for ep in range(1, 4):
-            assert (root / f"第{ep}集" / "剧本.md").is_file()
-            assert (root / f"第{ep}集" / "分镜").is_dir()
-            assert (root / f"第{ep}集" / "成片").is_dir()
-            assert (root / f"第{ep}集" / "分镜" / "尾帧.md").is_file()
-        assert not (root / "第4集").exists(), "episodes=3 不应创建第4集"
+            assert (root / "02_script" / f"第{ep}集" / "剧本.md").is_file()
+            for name in ("01_story", "04_performance", "06_prompts"):
+                assert (root / name / f"第{ep}集").is_dir(), f"{name}/{ep}"
+            shots = root / "05_shots" / f"第{ep}集"
+            assert shots.is_dir() and (shots / "视频段").is_dir()
+            assert (shots / "成片").is_dir()
+            assert (shots / "尾帧.md").is_file()
+        assert not (root / "05_shots" / "第4集").exists(), "episodes=3 不应创建第4集"
         # 幂等：改内容后重跑，内容不被覆盖
         marker = "已有内容不覆盖"
-        (root / "第1集" / "剧本.md").write_text(marker, encoding="utf-8")
+        script = root / "02_script" / "第1集" / "剧本.md"
+        script.write_text(marker, encoding="utf-8")
         init_project(root, 3)
-        assert (root / "第1集" / "剧本.md").read_text(encoding="utf-8") == marker, "重跑覆盖了已有内容"
+        assert script.read_text(encoding="utf-8") == marker, "重跑覆盖了已有内容"
         # 扩容：episodes=5 时补建 4/5 集
         init_project(root, 5)
-        assert (root / "第5集" / "剧本.md").is_file(), "扩容未补建"
-    print("selftest PASS（3 集结构 / 幂等不覆盖 / 扩容补建）")
+        assert (root / "02_script" / "第5集" / "剧本.md").is_file(), "扩容未补建"
+    print("selftest PASS（七目录结构 / 幂等不覆盖 / 扩容补建）")
     return 0
 
 
