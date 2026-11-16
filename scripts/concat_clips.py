@@ -123,15 +123,20 @@ def concat(files, out: Path, keep_audio: bool):
 
 
 def default_out(d: Path):
-    """工位结构推断：…/第X集/分镜/视频段 → …/第X集/成片/第X集_成片.mp4。
+    """工位结构推断：…/集目录/{分镜/视频段|视频段} → …/集目录/成片/集名_成片.mp4。
 
+    两代布局的集目录不同名（v2 是 第X集/分镜/视频段，v3 是 05_shots/第X集/视频段），
+    故按集目录名是否形如 第N集 判断，不写死父目录名。
     也认 trim_clips.py 的输出目录（视频段/裁切_5s），因为常见顺序是先裁整拍再
     对裁切目录拼接——不回溯的话成片会落在裁切子目录里，偏离工位结构。
     """
     vs = d.parent if d.name == "裁切_5s" else d
-    if vs.name == "视频段" and vs.parent.name == "分镜":
-        ep = vs.parent.parent
-        return ep / "成片" / f"{ep.name}_成片.mp4"
+    if vs.name == "视频段":
+        ep = vs.parent
+        if ep.name == "分镜":
+            ep = ep.parent
+        if re.match(r"^第\d+集$", ep.name):
+            return ep / "成片" / f"{ep.name}_成片.mp4"
     return d / "成片.mp4"
 
 

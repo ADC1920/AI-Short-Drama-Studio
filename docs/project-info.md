@@ -4,24 +4,29 @@
 
 ## 一、架构
 
-技能包三段式：主入口 `SKILL.md`（触发示例 58 类 / 五工位流水线双形态 / 对标参考流程 / 铁律与核心公式 / 平台硬约束 / 成本纪律 / 排障速查 / 项目层多集）→ `references/` 22 篇按需加载工艺文档（含 review-rubric 审查规则表、novel-adaptation 原著改编）→ `scripts/` 28 个工程脚本（含 task_ledger 任务台账、impact_graph 改稿影响面、estimate_cost 成本估算、measure_ref 对标测量、review_check 审查记录、novel_index 原著索引）。数据流：用户素材（完整剧本 / 一句话梗概 / 长篇小说）→ 工作室项目（`studio.py init`：`studio.json` + `素材/` + `场景板/` + 各集三件；`--novel` 时另建 `_novel/index.json`）→ 五工位推进（剧本台 → 角色与场景台 → 分镜台〔技法 A 分镜智能体 / 技法 B 宫格直生〕→ 出片台 → 后期台）→ 门禁串联（`studio.py check`：`check_script` / `validate_storyboard` / `check_refs` / `manifest verify`（含提示词哈希）/ `check_scene_plates`）→ 成片与发布包装。旁路记录：`_tasks.jsonl` 任务台账（成本）、`_impact.json` 依赖图（改稿影响面）、`_reviews/` 审查记录。本工作区（git 仓库）为开发源；发布面=GitHub；使用面=本机技能实体（静态复制，`scripts/sync_entity.py` 一键同步）。
+技能包三段式：主入口 `SKILL.md`（触发示例 72 类 / 十段弹性路由双形态 / 四种入口模式 / 对标参考流程 / 铁律与核心公式 / 平台硬约束 / 成本纪律 / 排障速查 / 项目层多集）→ `references/` 27 篇按需加载工艺文档（含 stage-router 十段路由总纲、concept-anchor 概念三路径、worldbuilding-rules 世界观规则、treatment-audit 分场审计与剧本融合、performance-craft 表演五支柱、review-rubric 审查规则表、novel-adaptation 原著改编）→ `scripts/` 28 个工程脚本（含 task_ledger 任务台账、impact_graph 改稿影响面、estimate_cost 成本估算、measure_ref 对标测量、review_check 审查记录、novel_index 原著索引）。数据流：用户素材（完整剧本 / 一句话梗概 / 长篇小说）→ 工作室项目（`studio.py init`：`studio.json` + 七目录 + 三份控制文件 + `场景板/` + 各集集级子目录；`--novel` 时另建 `_novel/index.json`）→ 十段推进（01 概念 → 02 角色 → 03 世界观〔可选〕→ 04 分场 → 05 剧本融合 → 06 资产 → 07 表演〔可选〕→ 08 分镜提示词〔技法 A 分镜智能体 / 技法 B 宫格直生〕→ 09 出片 → 10 后期发布）→ 门禁串联（`studio.py check`：`check_script` / `validate_storyboard` / `check_refs` / `manifest verify`（含提示词哈希）/ `check_scene_plates` / `lint_prompt`）→ 成片与发布包装。旁路记录：`_tasks.jsonl` 任务台账（成本）、`_impact.json` 依赖图（改稿影响面）、`_reviews/` 审查记录。布局兼容：v2 旧项目（根下 `第X集/{剧本.md,分镜/,成片/}` + `素材/`）由 `studio.py` 的 `detect_layout` 自动判别，不迁移。本工作区（git 仓库）为开发源；发布面=GitHub；使用面=本机技能实体（静态复制，`scripts/sync_entity.py` 一键同步）。
 
 ## 二、目标
 
-把一句话剧情或完整剧本变成可执行的 AI 短剧视频（动态漫/漫剧、写实风等形态通用）；本工作区职责=开发、版本化、发布该技能（当前 v2.7.0）。
+把一句话剧情或完整剧本变成可执行的 AI 短剧视频（动态漫/漫剧、写实风等形态通用）；本工作区职责=开发、版本化、发布该技能（当前 v3.0.0）。
 
 ## 三、模块表（关键词锚定列）
 
 | 模块 | 载体 | 关键词锚定（3-8） |
 |---|---|---|
-| 主入口/五工位 | `SKILL.md` | 对标流程、五工位（剧本台/角色与场景台/分镜台/出片台/后期台）、铁律、平台硬约束、排障速查、项目层多集、成本纪律、首镜2秒钩子 |
-| 工作室流程 | `references/studio-workflow.md` | 五工位定义与门禁、studio.json 数据契约、改稿回流表、单集推进命令 |
-| 工作室总控 | `scripts/studio.py` | init/status/check/board、双形态（drama/short）、扫盘进度、当前焦点工位、改稿时间提示、门禁串联 |
+| 主入口/十段路由 | `SKILL.md` | 十段（概念/角色/世界观/分场/剧本融合/资产/表演/分镜提示词/出片/后期发布）、四种入口、铁律、平台硬约束、排障速查、项目层多集、成本纪律 |
+| 路由总纲 | `references/stage-router.md` | 十段定义、全流程/单阶段/接力/修订、最小输入、回退与下游过期、控制文件职责 |
+| 概念锚定 | `references/concept-anchor.md` | 三路径判定、C 爆款复合引擎、三层反转链、极速节点、A 三幕要素、B 三层结构法 |
+| 世界观规则 | `references/worldbuilding-rules.md` | 规则四问、知识层级表、setup-payoff、能力分布、禁对白倒设定 |
+| 分场与剧本融合 | `references/treatment-audit.md` | 场景数估算、逐场四问、六个审计标签、资产扫描单、密度分流、防注水 |
+| 表演层 | `references/performance-craft.md` | 五支柱、倾听与反应、身体档案、主档案模板、眼神细节、十五种败笔、五分制 |
+| 工作室流程 | `references/studio-workflow.md` | 十段与旧五工位映射、数据契约、改稿回流表、单集推进命令 |
+| 工作室总控 | `scripts/studio.py` | init/status/check/board、双形态（drama/short）、detect_layout 双布局、十段扫盘、当前焦点段、改稿时间提示、门禁串联 |
 | 短视频工艺 | `references/short-video-studio.md` | 时长预算反推、三档节奏、Hook 六分类、追问四失效、发布包四件、脚本小节结构 |
 | 短端口播机检 | `scripts/short_plan.py` | 口播字数区间、单镜≥1.5s、时间轴断档、钩子小节、发布包三件、`--target` 预算反推 |
-| 分镜智能体（分镜台技法A） | `references/agent-prompt.md` | 系统提示词、镜号、时长、转场、声音设计、尾帧接力 |
-| 宫格分镜（分镜台技法B） | `references/grid-storyboard.md` | 4/6/9/25 宫格、分镜JSON、直生15s、拼图 |
-| 人脸审核规避（角色台技法C） | `references/face-workarounds.md` | 墨镜遮挡、网格遮挡、无五官三视图、服装+头部、风格转绘 |
+| 分镜智能体（08 段技法A） | `references/agent-prompt.md` | 系统提示词、镜号、时长、转场、声音设计、尾帧接力 |
+| 宫格分镜（08 段技法B） | `references/grid-storyboard.md` | 4/6/9/25 宫格、分镜JSON、直生15s、拼图 |
+| 人脸审核规避（06 段技法） | `references/face-workarounds.md` | 墨镜遮挡、网格遮挡、无五官三视图、服装+头部、风格转绘 |
 | 素材一致性工艺 | `references/asset-workflow.md` | 人物锚点法、ref红线、候选图选择、重构图、首帧四要素 |
 | 分镜图工艺 | `references/frame-industrial.md` | 三层分离、8段式、4模选档、并发限流、非人形偏置 |
 | 提示词进阶 | `references/prompt-craft.md` | 三作用域、末态法则、多素材绑定、否定失效、实测档案 |
@@ -42,7 +47,7 @@
 | 场景单生成 | `scripts/gen_scene_sheet.py` | 数据单源、渲染、verify、docx |
 | 分镜 JSON 机检 | `scripts/validate_storyboard.py` | 数量、词数、字符上限、排除词、编号重复、告警、门日志 |
 | @引用核对 | `scripts/check_refs.py` | 断链、待补标注、闲置素材、大小写、绑定自检 |
-| 剧本台机检 | `scripts/check_script.py` | 集号一致、模板占位、@引用清单、钩子与收尾、场次编号、台词时长预算 |
+| 剧本机检 | `scripts/check_script.py` | 集号一致、模板占位、@引用清单、钩子与收尾、场次编号、台词时长预算 |
 | 多集脚手架 | `scripts/init_project.py` | 多集目录、幂等、扩容 |
 | 拼宫格 | `scripts/make_grid.py` | 拼图、4/6/9/25、Pillow、递归扫描 |
 | 旧版归档 | `scripts/archive_old_docx.py` | 交付版本管理、_旧版归档、dry-run、selftest |

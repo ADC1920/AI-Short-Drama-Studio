@@ -215,7 +215,10 @@ def main():
     if args.assets:
         assets_dir = Path(args.assets)
     elif args.project:
-        assets_dir = Path(args.project) / "素材"
+        # 素材目录候选：v3 七目录用 03_assets/，v2 用 素材/
+        assets_dir = Path(args.project) / "03_assets"
+        if not assets_dir.is_dir():
+            assets_dir = Path(args.project) / "素材"
         if not assets_dir.is_dir():
             assets_dir = Path(args.project)
     else:
