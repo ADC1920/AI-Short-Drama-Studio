@@ -23,6 +23,7 @@
 退出码: 0=无断链, 1=存在断链引用, 2=用法/路径错误
 """
 import argparse
+import json
 import re
 import sys
 import tempfile
@@ -206,6 +207,7 @@ def main():
     ap.add_argument("--assets", help="素材目录（默认 <项目>/素材）")
     ap.add_argument("--texts", action="append", default=[], help="文本文件或目录（可多次；默认整个项目目录）")
     ap.add_argument("--bindings", action="store_true", help="多素材绑定自检（默认关）")
+    ap.add_argument("--json", action="store_true", help="输出 JSON：{ok, findings[], summary}")
     ap.add_argument("--selftest", action="store_true")
     args = ap.parse_args()
 
@@ -231,24 +233,51 @@ def main():
         return 2
     for p in [assets_dir] + texts:
         if not p.exists():
-            print(f"路径不存在: {p}")
+            if args.json:
+                print(json.dumps({"ok": False, "findings": [
+                    {"level": "FAIL", "rule": "R0", "file": str(p), "line": 0,
+                     "msg": f"路径不存在: {p}",
+                     "fix": "确认路径；素材目录 v3 为 03_assets/、v2 为 素材/"}],
+                    "summary": {"total": 1, "fail": 1, "warn": 0}},
+                    ensure_ascii=False, indent=2))
+            else:
+                print(f"路径不存在: {p}")
             return 2
 
     assets = collect_assets(assets_dir)
     if assets is None:
-        print(f"素材目录不存在: {assets_dir}")
+        if args.json:
+            print(json.dumps({"ok": False, "findings": [
+                {"level": "FAIL", "rule": "R0", "file": str(assets_dir), "line": 0,
+                 "msg": f"素材目录不存在: {assets_dir}",
+                 "fix": "确认项目结构；v3 用 03_assets/，v2 用 素材/"}],
+                "summary": {"total": 1, "fail": 1, "warn": 0}}, ensure_ascii=False, indent=2))
+        else:
+            print(f"素材目录不存在: {assets_dir}")
         return 2
     refs, line_texts, contents = collect_refs(texts)
-    print(f"素材 {len(assets)} 件 | 引用名 {len(refs)} 个")
     errors, warnings = check(assets, refs, line_texts)
     if args.bindings:
         for fname, content in contents.items():
             warnings += check_bindings(content, fname)
-    for w in warnings:
-        print(f"警告: {w}")
-    for e in errors:
-        print(f"错误: {e}")
-    print("PASS（无断链）" if not errors else f"FAIL（{len(errors)} 断链 / {len(warnings)} 警告）")
+    if args.json:
+        findings = [{"level": "FAIL", "rule": "R1", "file": "", "line": 0, "msg": e,
+                     "fix": "把素材补进素材目录并让文件名与 @引用名完全一致，或改提示词里的引用名"}
+                    for e in errors]
+        findings += [{"level": "WARN", "rule": "R2", "file": "", "line": 0, "msg": w,
+                      "fix": ""} for w in warnings]
+        print(json.dumps({"ok": not errors, "findings": findings,
+                          "summary": {"total": len(findings), "fail": len(errors),
+                                      "warn": len(warnings)},
+                          "assets": len(assets), "refs": len(refs)},
+                         ensure_ascii=False, indent=2))
+    else:
+        print(f"素材 {len(assets)} 件 | 引用名 {len(refs)} 个")
+        for w in warnings:
+            print(f"警告: {w}")
+        for e in errors:
+            print(f"错误: {e}")
+        print("PASS（无断链）" if not errors else f"FAIL（{len(errors)} 断链 / {len(warnings)} 警告）")
     return 0 if not errors else 1
 
 

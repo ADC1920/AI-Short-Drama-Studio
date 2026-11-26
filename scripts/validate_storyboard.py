@@ -47,6 +47,20 @@ CJK_SKIP_RATIO = 0.3  # 中文占比超过此值视为中文提示词，跳过�
 LAYOUT_N = {"5x5": 25, "3x3": 9, "2x2": 4, "2x3": 6, "3x2": 6}
 GATE_LOG_NAME = ".gate-log.jsonl"
 GATE_LOG_MAX_LINES = 2000  # 门日志上限，超过时截去前一半（保留最近记录）
+# C11 用：与 check_script.py 的 S7 同一正则，剧本场次以「## 场景 N」标题声明
+SCRIPT_SCENE_RE = re.compile(r"(?m)^#{1,4}\s*场景\s*(\d+)")
+
+
+def read_script_scenes(path):
+    """从剧本 md 抽出场景标识列表（S1、S2…），供 C11 覆盖对账。
+
+    返回 [] 表示剧本没有可用场次标题——此时 C11 退化为「是否写了 scene_id」的弱检查。
+    """
+    try:
+        text = Path(path).read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        return []
+    return [f"S{n}" for n in SCRIPT_SCENE_RE.findall(text)]
 
 # C8：否定式高关联约束。视频模型对否定不敏感、对词根敏感——被禁词根留在提示词里会被当画面词渲染。
 # 词表与判据为单例实测经验（覆盖范围有限），只覆盖「光效/表情/空镜」三类高关联概念；
@@ -93,23 +107,41 @@ def cjk_ratio(s):
     return cjk / len(s)
 
 
-def check(data, expect_n, max_chars=DEFAULT_MAX_CHARS):
-    """返回 (errors, warnings, hits)；hits 记录各检查（C1-C10）命中次数，供门日志统计。"""
+def check(data, expect_n, max_chars=DEFAULT_MAX_CHARS, findings=None, script_scenes=None):
+    """返回 (errors, warnings, hits)；hits 记录各检查（C1-C11）命中次数，供门日志统计。
+
+    findings 传入 list 时，按统一格式追加条目供 --json 输出：
+    {level, rule, file, line, msg, fix}
+
+    script_scenes 传入剧本场次列表（如 ["S1","S2"]）时启用 C11 覆盖对账；
+    None 表示没有剧本可比，只做「是否有 scene_id」的弱检查。
+    """
     errors, warnings = [], []
     hits = {}
 
-    def err(cid, msg):
+    def err(cid, msg, fix=""):
         errors.append(msg)
         hits[cid] = hits.get(cid, 0) + 1
+        if findings is not None:
+            findings.append({"level": "FAIL", "rule": cid, "file": "", "line": 0,
+                             "msg": msg, "fix": fix})
 
-    def warn(cid, msg):
+    def warn(cid, msg, fix=""):
         warnings.append(msg)
         hits[cid] = hits.get(cid, 0) + 1
+        if findings is not None:
+            findings.append({"level": "WARN", "rule": cid, "file": "", "line": 0,
+                             "msg": msg, "fix": fix})
 
     layout = str(data.get("grid_layout", ""))
     shots = data.get("shots")
     if not isinstance(shots, list):
         err("C2", "缺少 shots 数组")
+        return errors, warnings, hits
+    # 空数组是「还没做」不是「做对了」——不拦会让 agent 收到 PASS
+    if not shots:
+        err("C2", "shots 为空数组（尚未产出任何镜头）",
+            "先按技法 A/B 产出分镜内容再跑此门禁")
         return errors, warnings, hits
 
     n = expect_n or LAYOUT_N.get(layout)
@@ -119,6 +151,8 @@ def check(data, expect_n, max_chars=DEFAULT_MAX_CHARS):
         err("C2", f"shots 数量 {len(shots)} != 应为 {n}（grid_layout={layout or '未填'}）")
 
     seen_numbers = {}
+    scene_ids = []          # C11 覆盖对账用：收集每镜声明的场景
+    missing_scene = 0       # 没写 scene_id 的镜数
     cjk_skip_noted = False
     for i, shot in enumerate(shots, 1):
         tag = f"分镜{i}"
@@ -127,6 +161,12 @@ def check(data, expect_n, max_chars=DEFAULT_MAX_CHARS):
             continue
         prompt = shot.get("prompt_text", "")
         num = shot.get("shot_number")
+        # C11 场景归属：供「分镜是否覆盖剧本全部场景」对账
+        sid = shot.get("scene_id")
+        if isinstance(sid, str) and sid.strip():
+            scene_ids.append(sid.strip())
+        else:
+            missing_scene += 1
         if not num:
             warn("C7", f"{tag}: 缺 shot_number")
         else:
@@ -165,6 +205,31 @@ def check(data, expect_n, max_chars=DEFAULT_MAX_CHARS):
         hit_words = [w for w in VAGUE_FORM_WORDS if w in prompt]
         if hit_words:
             warn("C10", f"{tag}: 抽象过程形态词 {'/'.join(hit_words)}——模型无法命名过程形态，建议改具体可见动作（如「雨滴砸在手背上溅开」）")
+
+    # C11 场景覆盖对账：分镜必须覆盖剧本声明的全部场景，漏场即 FAIL。
+    # 没有 scene_id 时降级为 WARN（老分镜 JSON 向后兼容），不阻断。
+    if script_scenes:
+        if missing_scene and not scene_ids:
+            warn("C11", f"全部 {len(shots)} 镜都没写 scene_id，无法与剧本场次对账"
+                        "（老格式；迁移用 scripts/migrate_storyboard.py）",
+                 "给每镜补 scene_id 字段，或跑 migrate_storyboard.py 批量补")
+        else:
+            covered = set(scene_ids)
+            absent = [s for s in script_scenes if s not in covered]
+            extra = sorted(covered - set(script_scenes))
+            if absent:
+                err("C11", f"分镜漏场：剧本有 {len(script_scenes)} 场，以下场景没有任何镜头覆盖："
+                           f"{'、'.join(absent)}",
+                    "为缺的场景补镜头，或确认该场是有意删减并同步改剧本")
+            if extra:
+                warn("C11", f"分镜声明了剧本中不存在的场景：{'、'.join(extra)}",
+                     "检查 scene_id 拼写，或把新增场景补进剧本")
+            if missing_scene:
+                warn("C11", f"{missing_scene} 镜缺 scene_id，未计入覆盖统计",
+                     "补 scene_id 才能做完整对账")
+    elif missing_scene and missing_scene == len(shots) and len(shots) > 0:
+        warn("C11", "分镜未写 scene_id，无法做场景覆盖对账",
+             "给每镜补 scene_id，或跑 migrate_storyboard.py 批量补")
     return errors, warnings, hits
 
 
@@ -297,8 +362,42 @@ def selftest():
             GATE_LOG_MAX_LINES = old_max
         missing = print_stats(Path(tmp) / "不存在.jsonl")
         assert missing == 0, "stats 缺文件路径异常"
+
+        # C11 场景覆盖对账：剧本 3 场、分镜只覆盖 S1/S2 -> 必须检出漏 S3 为 FAIL
+        cn = "中文提示词，无时间码，无字幕。"
+        script = Path(tmp) / "剧本.md"
+        script.write_text("# 剧本\n\n## 场景 1｜甲\n\n内容\n\n## 场景 2｜乙\n\n内容\n\n"
+                          "## 场景 3｜丙\n\n内容\n", encoding="utf-8")
+        assert read_script_scenes(script) == ["S1", "S2", "S3"], read_script_scenes(script)
+        sb_cover = {"grid_layout": "3x3", "shots": [
+            {"shot_number": str(i), "scene_id": "S1" if i <= 4 else "S2", "prompt_text": cn}
+            for i in range(1, 10)]}
+        f11 = []
+        e11, w11, _ = check(sb_cover, None, findings=f11, script_scenes=read_script_scenes(script))
+        assert any("S3" in e for e in e11), f"C11 漏场未检出: {e11}"
+        assert any(x["rule"] == "C11" and x["level"] == "FAIL" for x in f11), f11
+
+        # C11 全覆盖 -> 无 C11 errors
+        sb_full = {"grid_layout": "3x3", "shots": [
+            {"shot_number": str(i), "scene_id": f"S{min(i, 3)}", "prompt_text": cn}
+            for i in range(1, 10)]}
+        e12, _, _ = check(sb_full, None, script_scenes=["S1", "S2", "S3"])
+        assert not any("漏场" in e for e in e12), e12
+
+        # C11 无 scene_id（老格式）-> 降级 WARN 不阻断
+        e13, w13, _ = check({"grid_layout": "3x3", "shots": [
+            {"shot_number": str(i), "prompt_text": cn} for i in range(1, 10)]},
+            None, script_scenes=["S1"])
+        assert not any("漏场" in e for e in e13), f"老格式不该判 FAIL：{e13}"
+        assert any("scene_id" in w for w in w13), w13
+
+        # 空 shots 必须判 FAIL：「还没做」不能当「做对了」，否则 agent 收到 PASS
+        e14, _, _ = check({"shots": []}, None)
+        assert any("空数组" in e or "尚未产出" in e for e in e14), f"空 shots 未拦截：{e14}"
+
     print("selftest PASS（英文正例 0 错；中文正例 0 错且词数跳过；负例抓到 %d 错；编号重复检出；超长告警；"
-          "C8 否定词根检出且白名单不误报；C9 并列主体检出；C10 抽象形态检出；门日志追加/stats；文件读取通过）"
+          "C8 否定词根检出且白名单不误报；C9 并列主体检出；C10 抽象形态检出；"
+          "C11 漏场检出/全覆盖通过/老格式降级；门日志追加/stats；文件读取通过）"
           % len(e2))
     return 0
 
@@ -311,6 +410,8 @@ def main():
     ap.add_argument("--no-log", action="store_true", help="不追加门日志（默认追加到目标文件同目录 .gate-log.jsonl）")
     ap.add_argument("--log-file", help="门日志路径（默认 <目标文件目录>/.gate-log.jsonl）")
     ap.add_argument("--stats", action="store_true", help="只汇总门日志（哪道检查最常响），不校验文件")
+    ap.add_argument("--script", help="剧本 md 路径：给出时做 C11 场景覆盖对账（分镜是否漏场）")
+    ap.add_argument("--json", action="store_true", help="输出 JSON：{ok, findings[], summary}")
     ap.add_argument("--selftest", action="store_true")
     args = ap.parse_args()
 
@@ -325,18 +426,41 @@ def main():
     try:
         data = load(args.file)
     except FileNotFoundError:
-        print(f"文件不存在: {args.file}")
+        if args.json:
+            print(json.dumps({"ok": False, "findings": [
+                {"level": "FAIL", "rule": "C1", "file": args.file, "line": 0,
+                 "msg": f"文件不存在: {args.file}", "fix": "确认路径；分镜 JSON 通常在 05_shots/第N集/ 下"}],
+                "summary": {"total": 1, "fail": 1, "warn": 0}}, ensure_ascii=False, indent=2))
+        else:
+            print(f"文件不存在: {args.file}")
         return 2
     except (json.JSONDecodeError, ValueError) as exc:
-        print(f"C1 JSON 解析失败: {exc}")
+        if args.json:
+            print(json.dumps({"ok": False, "findings": [
+                {"level": "FAIL", "rule": "C1", "file": args.file, "line": 0,
+                 "msg": f"JSON 解析失败: {exc}", "fix": "检查 JSON 语法；容忍 ```json 围栏"}],
+                "summary": {"total": 1, "fail": 1, "warn": 0}}, ensure_ascii=False, indent=2))
+        else:
+            print(f"C1 JSON 解析失败: {exc}")
         return 1
 
-    errors, warnings, hits = check(data, args.n, args.max_chars)
-    for w in warnings:
-        print(f"警告: {w}")
-    for e in errors:
-        print(f"错误: {e}")
-    print("PASS" if not errors else f"FAIL（{len(errors)} 错误 / {len(warnings)} 警告）")
+    script_scenes = read_script_scenes(args.script) if args.script else None
+    findings = []
+    errors, warnings, hits = check(data, args.n, args.max_chars,
+                                    findings=findings, script_scenes=script_scenes)
+    if args.json:
+        for f in findings:
+            f["file"] = Path(args.file).name
+        print(json.dumps({"ok": not errors, "findings": findings,
+                          "summary": {"total": len(findings), "fail": len(errors),
+                                      "warn": len(warnings)}},
+                         ensure_ascii=False, indent=2))
+    else:
+        for w in warnings:
+            print(f"警告: {w}")
+        for e in errors:
+            print(f"错误: {e}")
+        print("PASS" if not errors else f"FAIL（{len(errors)} 错误 / {len(warnings)} 警告）")
     if not args.no_log:
         log_path = Path(args.log_file) if args.log_file else Path(args.file).parent / GATE_LOG_NAME
         append_gate_log(log_path, Path(args.file).name, data, errors, warnings, hits)

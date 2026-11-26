@@ -270,7 +270,16 @@ def main():
             d = Path(args.dir)
             vids = sorted(p for p in d.glob(args.pattern) if p.is_file())
             if len(vids) < 2:
-                print(f"目录中匹配到 {len(vids)} 个视频（至少 2 个）"); sys.exit(2)
+                if args.json:
+                    print(json.dumps({"ok": False, "findings": [
+                        {"level": "FAIL", "rule": "SEAM0", "file": str(d), "line": 0,
+                         "msg": f"目录中匹配到 {len(vids)} 个视频（至少 2 个）",
+                         "fix": "接缝检测需要相邻两段；先出片到 05_shots/第N集/视频段/，或用 --pattern 指定文件名模式"}],
+                        "summary": {"total": 1, "fail": 1, "warn": 0}},
+                        ensure_ascii=False, indent=2))
+                else:
+                    print(f"目录中匹配到 {len(vids)} 个视频（至少 2 个）")
+                sys.exit(2)
             pairs = [(vids[i - 1].stem, vids[i - 1], vids[i].stem, vids[i])
                      for i in range(1, len(vids))]
             rows = check_pairs(pairs, tmp, args.tail, args.head, flow)

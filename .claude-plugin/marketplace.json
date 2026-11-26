@@ -1,0 +1,21 @@
+{
+  "name": "ai-short-drama-studio-marketplace",
+  "owner": {
+    "name": "ADC1920"
+  },
+  "metadata": {
+    "description": "AI 短剧与短视频工作室技能（十段弹性路由 · Seedance 出片）",
+    "version": "3.1.0"
+  },
+  "plugins": [
+    {
+      "name": "ai-short-drama-studio",
+      "description": "AI 短剧/短视频工作室：概念→角色→世界观→分场→剧本融合→资产→表演→分镜提示词→出片→后期发布，十段可单独进入；28+ 个门禁脚本全带 selftest，成本/影响面/接缝/覆盖率有量化落点",
+      "source": "./",
+      "strict": false,
+      "skills": [
+        "./"
+      ]
+    }
+  ]
+}

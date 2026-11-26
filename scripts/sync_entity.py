@@ -32,7 +32,9 @@ from datetime import datetime
 from pathlib import Path
 
 EXCLUDE = {".git", "AGENTS.md", "docs", "memory", ".github", "examples", "__pycache__",
-           ".v2c", "out", ".studio", ".tmp", ".gitignore"}
+           ".v2c", "out", ".studio", ".tmp", ".gitignore",
+           # 插件市场清单只对仓库分发有意义；技能实体由平台技能目录直接加载
+           ".claude-plugin"}
 MAX_LIST = 20  # 差异清单每类最多打印条数
 
 

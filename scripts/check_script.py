@@ -30,6 +30,7 @@ S4-S9 为警告级：属于创作判断，留给人决定是否接受——「�
 退出码: 0=无错误, 1=存在错误, 2=用法/文件错误
 """
 import argparse
+import json
 import re
 import sys
 import tempfile
@@ -218,6 +219,19 @@ def run_one(path, target, rate):
     return errors, warnings
 
 
+# check() 产出的每条消息都带 S* 前缀（如「S3 模板占位残留…」），拆出来做 rule 字段
+RULE_PREFIX_RE = re.compile(r"^([SFR]\d+)\s+")
+
+
+def _to_finding(level, msg, path):
+    """消息字符串 → 统一 findings 条目。rule 取自消息前缀，缺前缀时留空。"""
+    m = RULE_PREFIX_RE.match(msg)
+    rule = m.group(1) if m else ""
+    body = msg[m.end():] if m else msg
+    return {"level": level, "rule": rule, "file": Path(path).name if path else "",
+            "line": 0, "msg": body, "fix": ""}
+
+
 def selftest():
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
@@ -311,6 +325,7 @@ def main():
                     help="本集目标时长（秒），给出时核对台词预算")
     ap.add_argument("--rate", type=float, default=DEFAULT_RATE,
                     help=f"中文语速字/秒（默认 {DEFAULT_RATE}，区间 4.0-4.6）")
+    ap.add_argument("--json", action="store_true", help="输出 JSON：{ok, findings[], summary}")
     ap.add_argument("--selftest", action="store_true", help="自检")
     args = ap.parse_args()
 
@@ -322,21 +337,51 @@ def main():
 
     p = Path(args.target)
     if not p.exists():
-        print(f"路径不存在：{p}")
+        if args.json:
+            print(json.dumps({"ok": False, "findings": [
+                {"level": "FAIL", "rule": "S1", "file": str(p), "line": 0,
+                 "msg": f"路径不存在：{p}", "fix": "确认路径；剧本通常在 02_script/第N集/剧本.md"}],
+                "summary": {"total": 1, "fail": 1, "warn": 0}}, ensure_ascii=False, indent=2))
+        else:
+            print(f"路径不存在：{p}")
         return 2
 
     targets = [p] if p.is_file() else find_scripts(p)
     if not targets:
-        print(f"没找到剧本（{p} 下无 第N集/剧本.md）")
+        if args.json:
+            print(json.dumps({"ok": False, "findings": [
+                {"level": "FAIL", "rule": "S1", "file": str(p), "line": 0,
+                 "msg": f"没找到剧本（{p} 下无 第N集/剧本.md）",
+                 "fix": "用 studio.py init 建目录，或直接传剧本文件路径"}],
+                "summary": {"total": 1, "fail": 1, "warn": 0}}, ensure_ascii=False, indent=2))
+        else:
+            print(f"没找到剧本（{p} 下无 第N集/剧本.md）")
         return 2
 
+    all_findings = []
     total_err = total_warn = 0
     for t in targets:
-        e, w = run_one(t, args.target_seconds, args.rate)
-        total_err += len(e)
-        total_warn += len(w)
-        print()
-    if len(targets) > 1:
+        if args.json:
+            e, w, _ = check(t, target=args.target_seconds, rate=args.rate)
+            for item in e:
+                all_findings.append(_to_finding("FAIL", item, t))
+            for item in w:
+                all_findings.append(_to_finding("WARN", item, t))
+            total_err += len(e)
+            total_warn += len(w)
+        else:
+            e, w = run_one(t, args.target_seconds, args.rate)
+            total_err += len(e)
+            total_warn += len(w)
+            print()
+
+    if args.json:
+        print(json.dumps({"ok": total_err == 0, "findings": all_findings,
+                          "summary": {"total": len(all_findings), "fail": total_err,
+                                      "warn": total_warn},
+                          "scripts_checked": len(targets)},
+                         ensure_ascii=False, indent=2))
+    elif len(targets) > 1:
         print(f"合计：{len(targets)} 集，{total_err} 错误 / {total_warn} 警告")
     return 0 if total_err == 0 else 1
 

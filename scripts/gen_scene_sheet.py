@@ -284,6 +284,12 @@ def selftest():
         out = tmp / "out.md"
         out.write_text(text, encoding="utf-8", newline="\n")
         assert out.read_text(encoding="utf-8") == text
+
+        # 无参必须返回 2（不是 0）：agent 用 exit==0 判绿，裸 return 会被当成「已执行」
+        cp = subprocess.run([sys.executable, str(Path(__file__).resolve())],
+                            capture_output=True, text=True, encoding="utf-8", errors="replace")
+        assert cp.returncode == 2, f"无参应 exit 2，实际 {cp.returncode}"
+
         print("selftest PASS")
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
@@ -308,7 +314,7 @@ def main():
         return
     if not args.data:
         ap.print_help()
-        return
+        return 2
     datafile = find_data(args.data)
     if args.docx:
         sys.exit(cmd_docx(datafile, args.docx, args.force, args.md2docx))
@@ -317,4 +323,5 @@ def main():
 
 if __name__ == "__main__":
     sys.stdout.reconfigure(encoding="utf-8")
-    main()
+    # 取 main() 返回值：无参等早退路径走 return 2，裸调用会把退出码吞成 0
+    sys.exit(main())
