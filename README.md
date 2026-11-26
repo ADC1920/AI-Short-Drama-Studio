@@ -165,10 +165,10 @@ git clone https://github.com/ADC1920/AI-Short-Drama-Studio.git "$env:USERPROFILE
 .
 ├── SKILL.md                 主入口：十段路由、铁律、平台约束、排障、索引（触发示例 72 类）
 ├── references/              28 篇工艺文档，按场景加载
-├── scripts/                 32 个工程脚本，全部带 selftest
+├── scripts/                 33 个工程脚本，全部带 selftest
 ├── examples/demo-multi-ep/  最小多集样例（v2 布局，同时用于兼容回归）
 ├── docs/                    开发导航与历史更新说明
-└── .github/workflows/       CI：脚本自检与样例端到端回归
+└── .github/workflows/       CI：33 脚本自检 + 技能体检 + 触发评测 + CLI 契约 + 端到端 + 迁移往返
 ```
 
 `SKILL.md` 末尾有完整的文件与脚本索引，说明每个文件该在什么时候读。`references/` 不必通读，按任务需要取用即可。
@@ -195,7 +195,7 @@ git clone https://github.com/ADC1920/AI-Short-Drama-Studio.git "$env:USERPROFILE
 
 | 脚本 | 用途 | 额外依赖 |
 |---|---|---|
-| `validate_storyboard.py` | 分镜 JSON 机检：数量、词数、字符上限、排除词、编号重复 | 无 |
+| `validate_storyboard.py` | 分镜 JSON 机检：数量、词数、字符上限、排除词、编号重复、词层告警，以及 **C11 场景覆盖对账**（剧本有场次而分镜漏场即 FAIL）；`--script` 传剧本启用对账 | 无 |
 | `check_refs.py` | @引用与素材文件核对：断链、待补、闲置素材（v3 找 `03_assets/`，v2 回退 `素材/`） | 无 |
 | `check_script.py` | 剧本机检：集号一致、模板占位、@清单、钩子与收尾、场次编号、台词时长预算 | 无 |
 | `make_grid.py` | 本地拼宫格，支持 4/6/9/25 | Pillow |
@@ -223,6 +223,11 @@ git clone https://github.com/ADC1920/AI-Short-Drama-Studio.git "$env:USERPROFILE
 | `measure_ref.py` | 对标测量器：probe 测时长/切点/镜长，diff 与自家成片同一把尺对照 | ffmpeg、ffprobe、numpy、Pillow |
 | `review_check.py` | 审查记录格式机检：结论四档自洽、每条有证据、PROVISIONAL 须写明缺什么 | 无 |
 | `novel_index.py` | 原著结构索引：章节切分、情节点带 quote+offset 可回查、分集区间建议 | 无 |
+| `check_skill.py` | **技能自身体检**（其余脚本查项目产物，它查技能本体）：front-matter 白名单、孤儿引用、脚本索引覆盖、死链、长文 TOC、CI YAML 合法性 | 无（YAML 校验需 PyYAML，缺失则跳过） |
+| `check_contract.py` | **CLI 契约机检**：关键脚本无参必须 exit 2、exit 0/1 时 `--json` 必须可解析 | 无 |
+| `migrate_storyboard.py` | 老分镜补 `scene_id`（C11 对账前置）：显式 `--segments` 或 `--infer` 均分（标注为猜测）、默认干跑、`--apply` 自动备份 | 无 |
+| `run_trigger_eval.py` | 触发评测：description 与触发话术表自洽（落点非空、文件真实存在、关键词覆盖）；`--live` 需 claude CLI | 无（`--live` 需 claude CLI） |
+| `add_toc.py` | 维护脚本：给 >100 行 reference 批量补目录（幂等） | 无 |
 
 依赖一次装齐：
 
@@ -254,12 +259,22 @@ for s in validate_storyboard check_refs check_script init_project make_grid \
          fix_table_pagination qa_batch manifest trim_clips concat_clips \
          gen_script check_scene_plates gen_scene_sheet style_code_blocks \
          lint_prompt studio short_plan tts_voice estimate_cost task_ledger \
-         impact_graph measure_ref review_check novel_index; do
+         impact_graph measure_ref review_check novel_index \
+         check_skill check_contract migrate_storyboard add_toc run_trigger_eval; do
   python "scripts/$s.py" --selftest || echo "FAIL $s"
 done
 ```
 
-CI 在推送到 main 和 PR 时执行同一组自检，并对样例项目跑端到端回归。
+CI 在推送到 main 和 PR 时跑六步：
+
+| 步骤 | 检查什么 |
+|---|---|
+| 33 脚本 selftest | 每个脚本的内置断言 |
+| `check_skill.py` | 技能本体：front-matter 白名单、孤儿引用、脚本索引覆盖、死链、长文 TOC、CI YAML 合法性 |
+| `run_trigger_eval.py` | description 与 72 条触发话术自洽（落点非空、文件真实存在、关键词覆盖） |
+| `check_contract.py` | CLI 契约：关键脚本无参必须 exit 2、exit 0/1 时 `--json` 必须可解析 |
+| demo 端到端 | 样例项目跑通全部门禁（含 `status --json`） |
+| 分镜迁移往返 | C11 漏场检出 → 迁移 → 零告警的完整闭环 |
 
 ## 环境要求
 
