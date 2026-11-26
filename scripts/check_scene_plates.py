@@ -18,6 +18,7 @@ import argparse
 import json
 import re
 import shutil
+import subprocess
 import sys
 import tempfile
 from pathlib import Path
@@ -312,6 +313,11 @@ def selftest():
         _, s = check({"plates": [big]})
         assert s["fail"] >= 1, "超长未拦截"
 
+        # 无参必须返回 2（不是 0）：agent 用 exit==0 判绿，裸 return 会被当成「检查通过」
+        cp = subprocess.run([sys.executable, str(Path(__file__).resolve())],
+                            capture_output=True, text=True, encoding="utf-8", errors="replace")
+        assert cp.returncode == 2, f"无参应 exit 2，实际 {cp.returncode}"
+
         print("selftest PASS")
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
@@ -331,7 +337,7 @@ def main():
         return
     if not args.data:
         ap.print_help()
-        return
+        return 2
     p = Path(args.data)
     if not p.exists():
         print(f"数据文件不存在：{p}")

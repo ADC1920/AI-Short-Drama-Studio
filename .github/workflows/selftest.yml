@@ -15,15 +15,44 @@ jobs:
           python-version: "3.12"
       - name: Install deps
         run: pip install pillow numpy python-docx
-      - name: Selftests (twenty-eight scripts)
+      - name: Selftests (thirty-three scripts)
         run: |
           set -e
-          for s in validate_storyboard check_refs check_script init_project make_grid archive_old_docx sync_entity check_double_root check_seams fix_table_pagination qa_batch manifest trim_clips concat_clips gen_script check_scene_plates gen_scene_sheet style_code_blocks lint_prompt studio short_plan tts_voice estimate_cost task_ledger impact_graph measure_ref review_check novel_index; do
+          for s in validate_storyboard check_refs check_script init_project make_grid archive_old_docx sync_entity check_double_root check_seams fix_table_pagination qa_batch manifest trim_clips concat_clips gen_script check_scene_plates gen_scene_sheet style_code_blocks lint_prompt studio short_plan tts_voice estimate_cost task_ledger impact_graph measure_ref review_check novel_index check_skill check_contract migrate_storyboard add_toc run_trigger_eval; do
             echo "== $s =="
             python "scripts/$s.py" --selftest
           done
+      - name: Skill self-check (front-matter / refs / index / TOC)
+        run: python scripts/check_skill.py
+      - name: Trigger eval (offline: description vs trigger table)
+        run: python scripts/run_trigger_eval.py
+      - name: CLI contract (no-arg exit 2 / --json parseable on exit 0-1)
+        run: python scripts/check_contract.py
       - name: End-to-end regression on demo project
         run: |
+          set -e
           python scripts/validate_storyboard.py "examples/demo-multi-ep/第1集/分镜/sb.json" --no-log
           python scripts/check_refs.py examples/demo-multi-ep
           python scripts/check_script.py examples/demo-multi-ep
+          python scripts/studio.py status examples/demo-multi-ep
+          python scripts/studio.py status examples/demo-multi-ep --json
+          python scripts/studio.py check examples/demo-multi-ep
+          python scripts/studio.py check examples/demo-multi-ep --json
+      - name: Storyboard migration round-trip (C11 coverage)
+        run: |
+          set -e
+          tmp=$(mktemp -d)
+          mkdir -p "$tmp/第1集/分镜"
+          cp "examples/demo-multi-ep/第1集/分镜/sb.json" "$tmp/第1集/分镜/sb.json"
+          printf '# 第1集\n\n## 场景 1｜测试\n\n内容内容内容\n' > "$tmp/第1集/剧本.md"
+          # 迁移前：无 scene_id -> C11 应给 WARN（exit 0）
+          python scripts/validate_storyboard.py "$tmp/第1集/分镜/sb.json" \
+            --script "$tmp/第1集/剧本.md" --json --no-log \
+            | python -c "import json,sys; d=json.load(sys.stdin); assert any(f['rule']=='C11' for f in d['findings']), d"
+          # 迁移
+          python scripts/migrate_storyboard.py "$tmp/第1集/分镜/sb.json" \
+            --script "$tmp/第1集/剧本.md" --segments "S1:1-9" --apply
+          # 迁移后：C11 应无告警
+          python scripts/validate_storyboard.py "$tmp/第1集/分镜/sb.json" \
+            --script "$tmp/第1集/剧本.md" --json --no-log \
+            | python -c "import json,sys; d=json.load(sys.stdin); assert not [f for f in d['findings'] if f['rule']=='C11'], d"

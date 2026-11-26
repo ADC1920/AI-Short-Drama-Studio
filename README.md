@@ -98,6 +98,40 @@ python scripts/short_plan.py --script 02_script/脚本.md        # 口播时长�
 - **成片量化验收**：`check_seams.py` 对相邻分镜算 SSIM、亮度、色相、饱和、运动持续性五维分；`qa_batch.py` 一键出验收底账；审片标准见 [`references/review-rubric.md`](references/review-rubric.md)（五范围 27 条、四档结论），`review_check.py` 机检审查记录本身是否空壳。
 - **对标与原著**：`measure_ref.py` 用 ffmpeg 场景检测，把参考视频与自家成片放同一把尺下测时长、切点、镜长；长篇改编入口是 `novel_index.py`（章节切分、情节点带原文位置可回查、分集区间建议），职责边界见 [`references/novel-adaptation.md`](references/novel-adaptation.md)。
 
+## 给 agent 调用
+
+这套脚本从一开始就是给 agent 用的，不是给人点按钮的。调用面有三条硬约定，全部写成契约：[`references/cli-contract.md`](references/cli-contract.md)。
+
+**一、退出码含义固定**，agent 按码分支而不是只判 `== 0`：
+
+| 码 | 含义 | agent 该做什么 |
+|---|---|---|
+| 0 | 通过 | 继续 |
+| 1 | 检查不通过 | 读 findings 改产物 |
+| 2 | 用法/路径错，**没检查成** | 别改产物，先查参数 |
+| 3 | 前置条件不满足 | 别原样重试（`task_ledger` 那处重试会重复计费） |
+| 4 | 环境或输入损坏 | 需人工介入 |
+
+**二、所有门禁都有 `--json`**，输出统一结构，agent 直接读字段不必解析中文散文：
+
+```json
+{
+  "ok": false,
+  "findings": [
+    {"level": "FAIL", "rule": "C11", "file": "sb.json", "line": 0,
+     "msg": "分镜漏场：剧本有 3 场，以下场景没有任何镜头覆盖：S3",
+     "fix": "为缺的场景补镜头，或确认该场是有意删减并同步改剧本"}
+  ],
+  "summary": {"total": 1, "fail": 1, "warn": 0}
+}
+```
+
+`studio.py check --json` 会把各子脚本的 findings 汇总上来，一次拿到全部问题。
+
+**三、分镜必须写 `scene_id`**。剧本有 10 场而分镜只做了 6 场，过去所有机检照样全绿——现在 C11 会判 FAIL 并列出漏了哪几场。老分镜用 [`scripts/migrate_storyboard.py`](scripts/migrate_storyboard.py) 补（默认干跑、`--apply` 自动备份）。
+
+技能自身也有体检：`check_skill.py` 查 front-matter 是否合规、references 有无孤儿与死链、脚本是否都进了索引、长文有无目录；`run_trigger_eval.py` 查 description 与触发话术表是否自洽。两者都在 CI 里跑。
+
 ## 安装
 
 克隆到 Agent 的技能目录，目录名保持 `ai-short-drama-studio`（技能 `name` 字段必须与目录同名）：
@@ -130,8 +164,8 @@ git clone https://github.com/ADC1920/AI-Short-Drama-Studio.git "$env:USERPROFILE
 ```
 .
 ├── SKILL.md                 主入口：十段路由、铁律、平台约束、排障、索引（触发示例 72 类）
-├── references/              27 篇工艺文档，按场景加载
-├── scripts/                 28 个工程脚本，全部带 selftest
+├── references/              28 篇工艺文档，按场景加载
+├── scripts/                 32 个工程脚本，全部带 selftest
 ├── examples/demo-multi-ep/  最小多集样例（v2 布局，同时用于兼容回归）
 ├── docs/                    开发导航与历史更新说明
 └── .github/workflows/       CI：脚本自检与样例端到端回归

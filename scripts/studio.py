@@ -383,9 +383,10 @@ def collect(root: Path):
             "num": u["num"],
             "script": script_ready(u["script"]),
             "treatment": doc_ready(u["story"] / "treatment.md"),
-            "acting": [p for p in sorted(u["performance"].glob("acting*.md"))
+            # 存相对路径字符串而非 Path：--json 走 json.dumps，Path 不可序列化
+            "acting": [str(p.relative_to(root)) for p in sorted(u["performance"].glob("acting*.md"))
                        if doc_ready(p)] if u["performance"].is_dir() else [],
-            "prompts": [p for p in sorted(u["prompts"].glob("*.md"))
+            "prompts": [str(p.relative_to(root)) for p in sorted(u["prompts"].glob("*.md"))
                         if doc_ready(p)] if u["prompts"].is_dir() else [],
             "storyboard": [str(p.relative_to(root)) for p in (
                 storyboard_jsons(sbd) if form == "drama" else short_storyboard_root(root, cfg))],
@@ -684,9 +685,13 @@ def run_check(root: Path):
     py = sys.executable
 
     for u in us:
+        # 剧本路径给 validate_storyboard 做 C11 场景覆盖对账（同集剧本同目录）
+        script_for_c11 = u["script"] if u["script"].is_file() else None
         for sb in storyboard_jsons(u["sbd"]):
-            checks.append((f"validate_storyboard {sb.relative_to(root)}",
-                           [py, str(HERE / "validate_storyboard.py"), str(sb, ), "--no-log"]))
+            cmd = [py, str(HERE / "validate_storyboard.py"), str(sb), "--no-log", "--json"]
+            if script_for_c11:
+                cmd += ["--script", str(script_for_c11)]
+            checks.append((f"validate_storyboard {sb.relative_to(root)}", cmd))
         # 提示词稿门禁：只在 v3 七目录下按 06_prompts/ 检查。
         # v2 的 prompts 目录指向集目录本身，会把剧本.md 当提示词稿误伤。
         # 用 general 口径——cinedance 稿不是走秀线，walk 口径的步态锁必误报。
@@ -694,16 +699,17 @@ def run_check(root: Path):
             for pr in sorted(u["prompts"].glob("*.md")):
                 checks.append((f"lint_prompt {pr.relative_to(root)}",
                                [py, str(HERE / "lint_prompt.py"), "--text", str(pr),
-                                "--line", "general"]))
+                                "--line", "general", "--json"]))
     if form == "short":
         for sb in short_storyboard_root(root, cfg):
             if sb.suffix.lower() == ".json":
                 checks.append((f"validate_storyboard {sb.relative_to(root)}",
-                               [py, str(HERE / "validate_storyboard.py"), str(sb), "--no-log"]))
+                               [py, str(HERE / "validate_storyboard.py"), str(sb),
+                                "--no-log", "--json"]))
 
     if paths["assets"].is_dir():
         checks.append(("check_refs 素材与 @引用",
-                       [py, str(HERE / "check_refs.py"), str(root)]))
+                       [py, str(HERE / "check_refs.py"), str(root), "--json"]))
 
     # 剧本段门禁：结构、占位、@清单、台词时长预算
     if form == "drama":
@@ -711,7 +717,7 @@ def run_check(root: Path):
             f = u["script"]
             if f.is_file():
                 checks.append((f"check_script {f.relative_to(root)}",
-                               [py, str(HERE / "check_script.py"), str(f)]))
+                               [py, str(HERE / "check_script.py"), str(f), "--json"]))
             else:
                 checks.append((f"check_script {f.relative_to(root)}（缺 {SCRIPT_NAMES['drama']}）",
                                None))
@@ -760,22 +766,46 @@ def run_check(root: Path):
     results = []
     for name, cmd in checks:
         if cmd is None:
-            results.append({"name": name, "ok": False, "exit": 2, "output": "缺少必需文件"})
+            results.append({"name": name, "ok": False, "exit": 2, "findings": [],
+                            "output": "缺少必需文件"})
             continue
         try:
             cp = subprocess.run(cmd, cwd=str(root), capture_output=True, text=True,
                                 encoding="utf-8", errors="replace", timeout=180)
             out = (cp.stdout or "") + (cp.stderr or "")
             results.append({"name": name, "ok": cp.returncode == 0,
-                            "exit": cp.returncode, "output": out.strip()[-1200:]})
+                            "exit": cp.returncode,
+                            "findings": _parse_child_findings(cp.stdout or ""),
+                            "output": out.strip()[-1200:]})
         except subprocess.TimeoutExpired:
-            results.append({"name": name, "ok": False, "exit": 124, "output": "超时（180s）"})
+            results.append({"name": name, "ok": False, "exit": 124, "findings": [],
+                            "output": "超时（180s）"})
         except OSError as e:
-            results.append({"name": name, "ok": False, "exit": 2, "output": str(e)})
+            results.append({"name": name, "ok": False, "exit": 2, "findings": [],
+                            "output": str(e)})
 
+    passed = sum(1 for r in results if r["ok"])
     return {"project": str(root), "results": results,
             "ok": all(r["ok"] for r in results) if results else True,
+            "summary": {"total": len(results), "passed": passed,
+                        "failed": len(results) - passed},
             "warnings": [stale_impact] if stale_impact else []}
+
+
+def _parse_child_findings(stdout):
+    """子脚本带 --json 时输出 {ok, findings[], summary}；解析出 findings 供 agent 直读。
+
+    解析失败返回 []（向后兼容：老脚本或非 JSON 输出），父层仍保留 output 原文兜底。
+    """
+    s = (stdout or "").strip()
+    if not s.startswith("{"):
+        return []
+    try:
+        data = json.loads(s)
+    except (json.JSONDecodeError, ValueError):
+        return []
+    got = data.get("findings")
+    return got if isinstance(got, list) else []
 
 
 def print_check(res):
@@ -1533,6 +1563,16 @@ def selftest():
         with contextlib.redirect_stdout(buf):
             print_status(collect(root))
         assert "尚无审查记录" not in buf.getvalue(), buf.getvalue()
+
+        # --json 可序列化不变量：collect() 全字段必须能 json.dumps（Path 漏转即在此炸）
+        for label, proj in (("v3", root), ("v2", Path(HERE).parent / "examples" / "demo-multi-ep")):
+            if not proj.is_dir():
+                continue
+            try:
+                json.dumps(collect(proj), ensure_ascii=False)
+            except TypeError as e:
+                raise AssertionError(f"collect({label}) 结果不可 JSON 序列化：{e}") from e
+
     print("studio selftest: OK（十段路由 + 七目录 + v2 布局兼容 + 单阶段跳做 + 短视频 + "
           "口播预算 + 成本视图 + 影响面 + 原著索引/审查提示）")
     return 0

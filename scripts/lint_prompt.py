@@ -25,6 +25,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import re
 import sys
 from pathlib import Path
@@ -293,6 +294,7 @@ def main() -> int:
     ap.add_argument("--line", choices=["walk", "general"], default="walk", help="检查口径，默认走秀线")
     ap.add_argument("--selftest", action="store_true", help="跑内置样例验证判别力")
     ap.add_argument("--quiet", action="store_true", help="只输出问题与结论")
+    ap.add_argument("--json", action="store_true", help="输出 JSON：{ok, findings[], summary}")
     args = ap.parse_args()
 
     if args.selftest:
@@ -331,6 +333,19 @@ def main() -> int:
         f, w = check(p, walk)
         fails.extend(f)
         warns.extend(w)
+
+    if args.json:
+        findings = [{"level": "FAIL", "rule": "L", "file": path.name, "line": 0,
+                     "msg": item, "fix": "按 references/prompt-craft.md 第八节替换或改写"}
+                    for item in fails]
+        findings += [{"level": "WARN", "rule": "L", "file": path.name, "line": 0,
+                      "msg": item, "fix": ""} for item in warns]
+        print(json.dumps({"ok": not fails, "findings": findings,
+                          "summary": {"total": len(findings), "fail": len(fails),
+                                      "warn": len(warns)},
+                          "prompts_checked": len(prompts)},
+                         ensure_ascii=False, indent=2))
+        return 0 if not fails else 1
 
     if not args.quiet:
         print("== 提示词词层机检 ==")
