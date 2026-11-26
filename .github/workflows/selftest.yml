@@ -24,7 +24,7 @@ jobs:
           done
       - name: Skill self-check (front-matter / refs / index / TOC)
         run: python scripts/check_skill.py
-      - name: Trigger eval (offline: description vs trigger table)
+      - name: "Trigger eval (offline - description vs trigger table)"
         run: python scripts/run_trigger_eval.py
       - name: CLI contract (no-arg exit 2 / --json parseable on exit 0-1)
         run: python scripts/check_contract.py

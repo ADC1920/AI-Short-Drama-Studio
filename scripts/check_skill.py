@@ -162,6 +162,24 @@ def check_skill(root):
         if not (script_dir / m.group(1)).is_file():
             out.append(finding("FAIL", "K9", f"SKILL.md 引用了不存在的脚本：scripts/{m.group(1)}",
                                "删掉该引用或补脚本"))
+
+    # K10 CI workflow 必须是合法 YAML：未加引号的值里含「: 」会让整个 workflow 失效，
+    # GitHub 只报「workflow file issue」不给行号，本地校验能省一轮 push 往返。
+    # 无 PyYAML 时跳过（项目本身零依赖），有则校验。
+    wf_dir = root / ".github" / "workflows"
+    if wf_dir.is_dir():
+        try:
+            import yaml  # noqa: PLC0415 —— 可选依赖，按需导入
+        except ImportError:
+            yaml = None
+        if yaml is not None:
+            for f in sorted(wf_dir.glob("*.yml")):
+                try:
+                    yaml.safe_load(f.read_text(encoding="utf-8", errors="replace"))
+                except yaml.YAMLError as e:
+                    first = str(e).splitlines()[0] if str(e) else "YAML 解析失败"
+                    out.append(finding("FAIL", "K10", f"{f.name} 不是合法 YAML：{first}",
+                                       "给含冒号的值加引号，或用 | 块标量"))
     return out
 
 
@@ -245,7 +263,29 @@ def selftest():
         assert any(x["rule"] == "K7" for x in r["findings"]), r["findings"]
         assert r["ok"], "K7 是 WARN，不该让整体判 FAIL"
 
-        print("selftest PASS（6 项：合规正例 / version 顶层 / name 非法 / 孤儿引用 / 脚本漏索引 / 死链 / 长文无 TOC）")
+        # 负例 7：CI workflow 非法 YAML（值里裸冒号）-> K10
+        try:
+            import yaml  # noqa: F401
+            bad7 = tmp / "bad7"
+            (bad7 / ".github" / "workflows").mkdir(parents=True)
+            (bad7 / ".github" / "workflows" / "ci.yml").write_text(
+                "name: ci\njobs:\n  a:\n    steps:\n"
+                "      - name: Trigger eval (offline: description vs table)\n"
+                "        run: echo hi\n", encoding="utf-8")
+            (bad7 / "SKILL.md").write_text(
+                "---\nname: d7\ndescription: x\n---\n# D\n", encoding="utf-8")
+            assert any(x["rule"] == "K10" for x in run(bad7)["findings"]), "K10 应检出非法 YAML"
+            # 正例：同内容加引号后应通过
+            (bad7 / ".github" / "workflows" / "ci.yml").write_text(
+                'name: ci\njobs:\n  a:\n    steps:\n'
+                '      - name: "Trigger eval (offline - x)"\n'
+                '        run: echo hi\n', encoding="utf-8")
+            assert not any(x["rule"] == "K10" for x in run(bad7)["findings"]), "加引号后不该报 K10"
+        except ImportError:
+            pass  # 无 PyYAML 时跳过该用例
+
+        print("selftest PASS（7 项：合规正例 / version 顶层 / name 非法 / 孤儿引用 / "
+              "脚本漏索引 / 死链 / 长文无 TOC / CI YAML 非法）")
     finally:
         import shutil
         shutil.rmtree(tmp, ignore_errors=True)
