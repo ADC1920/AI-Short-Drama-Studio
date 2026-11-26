@@ -38,21 +38,26 @@ EXCLUDE = {".git", "AGENTS.md", "docs", "memory", ".github", "examples", "__pyca
 MAX_LIST = 20  # 差异清单每类最多打印条数
 
 
-def file_map(root):
-    """{相对路径(posix): 绝对路径}；剪掉 EXCLUDE 顶层项。"""
+def file_map(root, include_excluded=False):
+    """{相对路径(posix): 绝对路径}；默认剪掉 EXCLUDE 顶层项。
+
+    include_excluded=True 时不剪——用于扫目标端，把「本该排除却残留」的项也捞出来，
+    否则 EXCLUDE 里的旧文件既不会被比对、也不会被 --prune 清掉（历史盲区）。
+    """
     out = {}
     root = Path(root)
     if not root.is_dir():
         return out
     for dirpath, dirnames, filenames in os.walk(root):
-        dirnames[:] = [d for d in dirnames if d not in EXCLUDE]
+        if not include_excluded:
+            dirnames[:] = [d for d in dirnames if d not in EXCLUDE]
         rel_dir = Path(dirpath).relative_to(root)
-        if rel_dir.parts and rel_dir.parts[0] in EXCLUDE:
+        if not include_excluded and rel_dir.parts and rel_dir.parts[0] in EXCLUDE:
             dirnames[:] = []
             continue
         for f in filenames:
             rel = rel_dir / f
-            if rel.parts[0] in EXCLUDE:
+            if not include_excluded and rel.parts[0] in EXCLUDE:
                 continue
             out[rel.as_posix()] = Path(dirpath) / f
     return out
@@ -110,10 +115,17 @@ def run(target, source=None, backup_dir=None, dry_run=False, prune=False):
         return 2
 
     src_map = file_map(src_root)
-    dst_map = file_map(dst_root)
+    # 目标端扫全量：让 EXCLUDE 项残留也能被发现（否则永远清不掉）
+    dst_all = file_map(dst_root, include_excluded=True)
+    dst_map = {k: v for k, v in dst_all.items() if k.split("/")[0] not in EXCLUDE}
+    excluded_leftover = {k: v for k, v in dst_all.items() if k.split("/")[0] in EXCLUDE}
+
     added, updated, same, extra = scan(src_map, dst_map)
     print(f"技能面: 源 {len(src_map)} 件 | 目标 {len(dst_map)} 件")
     print(f"差异面: 新增 {len(added)} / 更新 {len(updated)} / 相同 {len(same)} / 目标多余 {len(extra)}")
+    if excluded_leftover:
+        print(f"排除项残留: {len(excluded_leftover)} 件（本不该在实体里；--prune 一并清理）")
+        print_list("排除项残留", sorted(excluded_leftover))
     print_list("新增", added)
     print_list("更新", updated)
     print_list("目标多余（默认保留，--prune 删除）", extra)
@@ -121,7 +133,7 @@ def run(target, source=None, backup_dir=None, dry_run=False, prune=False):
     if dry_run:
         print("dry-run：未写入任何文件。")
         return 0
-    if not added and not updated and (not prune or not extra):
+    if not added and not updated and (not prune or not (extra or excluded_leftover)):
         print("无需同步（技能面已一致）。")
         return 0
 
@@ -149,7 +161,7 @@ def run(target, source=None, backup_dir=None, dry_run=False, prune=False):
         shutil.copy2(src_map[rel], dst)
     removed = []
     if prune:
-        for rel in extra:
+        for rel in list(extra) + sorted(excluded_leftover):
             try:
                 (dst_root / rel).unlink()
                 removed.append(rel)
@@ -159,12 +171,18 @@ def run(target, source=None, backup_dir=None, dry_run=False, prune=False):
 
     # 复核
     src_map2 = file_map(src_root)
-    dst_map2 = file_map(dst_root)
+    dst_all2 = file_map(dst_root, include_excluded=True)
+    dst_map2 = {k: v for k, v in dst_all2.items() if k.split("/")[0] not in EXCLUDE}
+    leftover2 = {k: v for k, v in dst_all2.items() if k.split("/")[0] in EXCLUDE}
     added2, updated2, _, extra2 = scan(src_map2, dst_map2)
-    if added2 or updated2 or (prune and extra2):
-        print(f"复核未通过: 新增残差 {len(added2)} / 更新残差 {len(updated2)}" + (f" / 多余残差 {len(extra2)}" if prune else ""))
+    if added2 or updated2 or (prune and (extra2 or leftover2)):
+        print(f"复核未通过: 新增残差 {len(added2)} / 更新残差 {len(updated2)}"
+              + (f" / 多余残差 {len(extra2)}" if prune else "")
+              + (f" / 排除项残留 {len(leftover2)}" if prune and leftover2 else ""))
         return 1
-    print(f"复核通过: 技能面 {len(src_map2)} 件全等（md5 逐件核对）。" + (f" 目标多余 {len(extra2)} 件（未删，--prune 可清）。" if extra2 and not prune else ""))
+    print(f"复核通过: 技能面 {len(src_map2)} 件全等（md5 逐件核对）。"
+          + (f" 目标多余 {len(extra2)} 件（未删，--prune 可清）。" if extra2 and not prune else "")
+          + (f" 排除项残留 {len(leftover2)} 件（--prune 可清）。" if leftover2 and not prune else ""))
     return 0
 
 
@@ -209,11 +227,17 @@ def selftest():
         assert bak.is_dir() and any(bak.iterdir()), "备份未生成"
         assert run(str(dst), source=str(src), backup_dir=str(bak), prune=True) == 0
         assert not (dst / "references" / "stale.md").exists(), "prune 未删除多余件"
+
+        # 排除项残留：目标端旧 .gitignore 既不该被比对，也不能永远清不掉
+        (dst / ".gitignore").write_text("memory/\n", encoding="utf-8")
+        assert run(str(dst), source=str(src), backup_dir=str(bak), prune=True) == 0
+        assert not (dst / ".gitignore").exists(), "prune 未清理排除项残留（EXCLUDE 旧文件应可清）"
+
         bad = root / "bad"
         bad.mkdir()
         assert run(str(bad), source=str(src), backup_dir=str(bak)) != 0, "非技能实体目标未被拒绝"
     print("selftest PASS（差异扫描 / 备份 / dry-run 不写 / 新增与更新 / 排除件与 .v2c 运行时未动 / "
-          "多余件默认保留 / prune 删除 / 非实体目标拒绝 / 复核通过）")
+          "多余件默认保留 / prune 删除 / 排除项残留可清 / 非实体目标拒绝 / 复核通过）")
     return 0
 
 
